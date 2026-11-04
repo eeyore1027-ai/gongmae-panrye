@@ -70,7 +70,7 @@ function ResultBody({ state }: { state: ResultState }) {
   }
 
   const { data } = state;
-  if (data.status === "error") {
+  if (data.status === "error" || data.status === "unauthorized") {
     return <p className="text-sm text-red-700 dark:text-red-400">{data.message}</p>;
   }
   if (data.status === "no-cases") {

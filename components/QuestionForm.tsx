@@ -3,12 +3,14 @@
 // Design Ref: §3 화면 구성 — 쟁점 입력창과 분석하기 버튼
 // Plan SC: 작업 6 판례 요약
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import { MAX_QUESTION_CHARS, TRY_AGAIN_NOTICE } from "@/lib/rules";
 import ResultView, { type ResultState } from "./ResultView";
 
 export default function QuestionForm() {
+  const router = useRouter();
   const [question, setQuestion] = useState("");
   const [result, setResult] = useState<ResultState>({ kind: "idle" });
 
@@ -28,6 +30,8 @@ export default function QuestionForm() {
       });
       const data = (await response.json()) as AnalyzeResponse;
       setResult({ kind: "done", data });
+      // 접속이 만료되면 서버가 접속 코드 화면을 보여 주도록 새로 불러온다.
+      if (data.status === "unauthorized") router.refresh();
     } catch {
       setResult({
         kind: "done",

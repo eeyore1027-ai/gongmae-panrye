@@ -5,6 +5,7 @@
 
 import { z } from "zod";
 import { AiError, extractSearchKeywords, summarizePrecedents } from "@/lib/ai";
+import { hasValidSession } from "@/lib/auth";
 import {
   checkOverruled,
   findRelevantPrecedents,
@@ -15,6 +16,7 @@ import {
   MAX_QUESTION_CHARS,
   MAX_SUMMARY_LINES,
   NOT_FOUND_NOTICE,
+  SESSION_EXPIRED_NOTICE,
   TRY_AGAIN_NOTICE,
 } from "@/lib/rules";
 
@@ -38,6 +40,7 @@ export type AnalyzedCase = {
 export type AnalyzeResponse =
   | { status: "ok"; keywords: string[]; cases: AnalyzedCase[] }
   | { status: "no-cases"; keywords: string[]; message: string }
+  | { status: "unauthorized"; message: string }
   | { status: "error"; message: string };
 
 function reply(body: AnalyzeResponse, status = 200) {
@@ -54,6 +57,11 @@ function limitLines(text: string): string {
 }
 
 export async function POST(request: Request) {
+  // 접속하지 않은 요청은 법제처·AI를 부르기 전에 막는다. (AI 비용 보호)
+  if (!(await hasValidSession())) {
+    return reply({ status: "unauthorized", message: SESSION_EXPIRED_NOTICE }, 401);
+  }
+
   const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return reply(
