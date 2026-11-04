@@ -12,6 +12,7 @@
 const BASE_URL = "https://www.law.go.kr/DRF";
 const REQUEST_TIMEOUT_MS = 8000;
 const DEFAULT_DISPLAY = 10;
+const SUPREME_COURT_CODE = "400201";
 const DEFAULT_SOURCE = "대법원"; // 법원 공개 판례의 데이터출처명
 const MAX_CONTENT_CHARS = 6000; // 판례 본문이 너무 길 때 AI에 넘기기 전에 자르는 기준(가정값)
 
@@ -115,6 +116,15 @@ function stripHtml(raw: string): string {
     .trim();
 }
 
+// 판결의 결론은 대개 끝에 있으므로, 길면 앞부분과 끝부분을 함께 남긴다.
+function clipContent(content: string, maxChars: number): string {
+  if (content.length <= maxChars) return content;
+  const half = Math.floor(maxChars / 2);
+  return `${content.slice(0, half)}
+…(중략)…
+${content.slice(-half)}`;
+}
+
 function toSummary(item: Json): PrecedentSummary {
   const courtCode = text(item["법원종류코드"]);
   return {
@@ -123,7 +133,7 @@ function toSummary(item: Json): PrecedentSummary {
     caseNumber: text(item["사건번호"]),
     judgmentDate: formatDate(text(item["선고일자"])),
     court: text(item["법원명"]),
-    isSupremeCourt: courtCode === "400201" || text(item["법원명"]) === "대법원",
+    isSupremeCourt: courtCode === SUPREME_COURT_CODE || text(item["법원명"]) === "대법원",
     judgmentType: text(item["판결유형"]),
     source: text(item["데이터출처명"]),
   };
@@ -161,7 +171,7 @@ export function parseDetailResponse(
     summary: stripHtml(text(node["판결요지"])),
     referencedStatutes: stripHtml(text(node["참조조문"])),
     referencedCases: stripHtml(text(node["참조판례"])),
-    content: truncated ? rawContent.slice(0, maxContentChars) : rawContent,
+    content: clipContent(rawContent, maxContentChars),
     contentTruncated: truncated,
   };
 }
@@ -217,7 +227,12 @@ async function callLawApi(
 // 판례 검색. 기본은 본문 검색이고, 최신 선고일 순으로 돌려준다.
 export async function searchPrecedents(
   query: string,
-  options: { display?: number; sourceName?: string; searchIn?: "title" | "body" } = {},
+  options: {
+    display?: number;
+    sourceName?: string;
+    searchIn?: "title" | "body";
+    supremeCourtOnly?: boolean;
+  } = {},
 ): Promise<PrecedentSearchResult> {
   const trimmed = query.trim();
   if (trimmed === "") return { totalCount: 0, items: [] };
@@ -229,6 +244,7 @@ export async function searchPrecedents(
     display: String(options.display ?? DEFAULT_DISPLAY),
     sort: "ddes", // 선고일자 내림차순
     datSrcNm: options.sourceName ?? DEFAULT_SOURCE, // 법원 판례만 (본문을 JSON으로 받을 수 있음)
+    ...(options.supremeCourtOnly ? { org: SUPREME_COURT_CODE } : {}),
   });
   return parseSearchResponse(root);
 }
@@ -251,52 +267,14 @@ export async function getPrecedent(
 // - 같은 사건번호가 다른 일련번호로 두 번 오기도 한다.
 // - 관련도순 정렬이 없어서, 후보의 본문을 받아 직접 점수를 매긴다.
 
-const MAX_KEYWORDS = 5;
 const CANDIDATE_TARGET = 15; // 후보가 이만큼 모이면 검색 조건을 그만 넓힌다
 const SEARCH_DISPLAY = 30;
 const MAX_BODY_FETCH = 12; // 본문까지 받아 점수를 매길 후보 수
 const MIN_BODY_MENTIONS = 5; // 제목·요지에 없을 때 본문에 나와야 하는 최소 횟수
 const DEFAULT_RESULT_LIMIT = 5; // PRD: 근거 판례 최대 5건
 
-// 끝에서 떼어 낼 조사 (긴 것부터 비교)
-const PARTICLES = [
-  "으로부터", "에게서", "에서는", "으로는", "에서", "에게", "으로", "까지", "부터", "에는",
-  "라는", "이나", "은", "는", "이", "가", "을", "를", "의", "에", "로", "와", "과", "도", "만",
-];
-
-// 끝에서 떼어 낼 동사·형용사 어미 ("누락되면" → "누락", "매수한" → "매수")
-const PREDICATE_ENDINGS = [
-  "하나요", "되나요", "합니까", "됩니까", "한가요", "인가요", "하는지", "되는지", "하면", "되면",
-  "하는", "되는", "한가", "인가", "한지", "된", "한", "할",
-];
-
-// 판례 찾기에 도움이 안 되는 말
-const STOP_WORDS = new Set([
-  "경우", "가능", "가능한", "가능한가", "여부", "어떻게", "어떤", "무엇", "있는", "있나요", "있는지",
-  "없는", "없나요", "대한", "대해", "대하여", "관련", "관한", "되나요", "되는지", "하나요", "하는",
-  "하는지", "해야", "할까요", "수", "것", "때", "후", "전", "및", "또는", "그", "이", "저", "알려줘",
-  "알려주세요", "궁금합니다", "위법한가", "판례", "사람",
-]);
-
-// 쟁점 글에서 검색어를 뽑는다. 숫자가 든 말은 주민번호 등일 수 있어 보내지 않는다.
-export function extractKeywords(question: string): string[] {
-  const words = question
-    .split(/[\s,.?!:;"'()[\]{}<>·…~/]+/)
-    .filter((word) => word !== "" && !/\d/.test(word))
-    .map((word) => {
-      // 불용어는 어미를 떼기 전 모양으로 먼저 거른다 ("가능한", "있는지" 등).
-      if (STOP_WORDS.has(word)) return "";
-      const ending = [...PARTICLES, ...PREDICATE_ENDINGS].find(
-        (candidate) => word.endsWith(candidate) && word.length - candidate.length >= 2,
-      );
-      return ending ? word.slice(0, -ending.length) : word;
-    })
-    .filter((word) => word.length >= 2 && !STOP_WORDS.has(word));
-
-  // 긴 말이 대개 더 구체적이므로 앞에 둔다. 조건을 넓힐 때 뒤에서부터 뺀다.
-  return [...new Set(words)]
-    .sort((a, b) => b.length - a.length)
-    .slice(0, MAX_KEYWORDS);
+function isEnBanc(item: PrecedentSummary): boolean {
+  return item.judgmentType.includes("전원합의체");
 }
 
 function countOccurrences(haystack: string, needle: string): number {
@@ -333,6 +311,7 @@ export function scorePrecedent(
   const enoughKeywords = matchedKeywords.length >= Math.ceil(keywords.length / 2);
   if (!enoughKeywords || (!headlineHit && bodyMentions < MIN_BODY_MENTIONS)) return null;
   if (detail.isSupremeCourt) score += 5;
+  if (isEnBanc(detail)) score += 30;
   // 공매 업무용 앱이므로 공매를 직접 다룬 판례를 앞에 둔다. 경매 판례는 빼지 않는다(준용 대상).
   if (headline.includes("공매")) score += 15;
   else if (detail.content.includes("공매")) score += 5;
@@ -357,6 +336,13 @@ async function collectCandidates(keywords: string[]): Promise<PrecedentSummary[]
   );
   add(byTitle.flatMap((result) => result.items));
 
+  // 최신 하급심에 밀리지 않도록 대법원 판례를 따로 모은다.
+  const bySupremeCourt = await searchPrecedents(
+    keywords.map((word) => `"${word}"`).join(" "),
+    { searchIn: "body", display: SEARCH_DISPLAY, supremeCourtOnly: true },
+  );
+  add(bySupremeCourt.items);
+
   // 본문에 검색어가 모두 있는 판례를 모으고, 모자라면 뒤쪽 검색어를 빼며 넓힌다.
   let bodyFound = 0;
   for (let count = keywords.length; count >= 1 && bodyFound < CANDIDATE_TARGET; count--) {
@@ -369,7 +355,10 @@ async function collectCandidates(keywords: string[]): Promise<PrecedentSummary[]
   // 판례명에 검색어가 많이 든 후보를 앞에 둔다. (본문까지 받는 후보 수에 제한이 있다)
   const titleHits = (item: PrecedentSummary) =>
     keywords.filter((word) => item.caseName.includes(word)).length;
-  return [...byCaseNumber.values()].sort((a, b) => titleHits(b) - titleHits(a));
+  // 전원합의체 판결은 기존 판례를 바꾸는 경우가 있으므로 가장 먼저 본다.
+  const rank = (item: PrecedentSummary) =>
+    (isEnBanc(item) ? 100 : 0) + titleHits(item) * 10 + (item.isSupremeCourt ? 1 : 0);
+  return [...byCaseNumber.values()].sort((a, b) => rank(b) - rank(a));
 }
 
 // 쟁점과 관련이 높은 판례를 점수순으로 돌려준다.
@@ -394,7 +383,7 @@ export async function findRelevantPrecedents(
     ranked.push({
       ...full,
       ...scored,
-      content: truncated ? full.content.slice(0, MAX_CONTENT_CHARS) : full.content,
+      content: clipContent(full.content, MAX_CONTENT_CHARS),
       contentTruncated: truncated,
     });
   }
