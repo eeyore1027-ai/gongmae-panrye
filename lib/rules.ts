@@ -11,6 +11,11 @@ export const NEEDS_REVIEW_LABEL = "법무 담당자 확인 필요";
 export const OUT_OF_SCOPE_NOTICE = "공매 업무 관련 질문만 답할 수 있다.";
 export const TRY_AGAIN_NOTICE = "잠시 후 다시 시도해 주세요.";
 export const NOT_FOUND_NOTICE = "해당 판례를 찾지 못했다.";
+export const OVERRULED_LABEL = "변경된 판례";
+export const MAY_CONFLICT_LABEL = "최신 판결과 다른 취지일 수 있음";
+export const CHECK_FAILED_LABEL = "판례 변경 여부를 확인하지 못함";
+export const OVERRULING_NOTICE =
+  "판례 변경 여부는 자동으로 확인한 결과입니다. 표시가 없어도 변경되지 않았다는 보장은 아니니, 근거로 쓰기 전에 확인하세요.";
 
 // 모든 AI 호출에 공통으로 넣는 지시문
 export const BASE_INSTRUCTIONS = `당신은 압류재산 공매(조세) 업무 담당 직원을 돕는 판례 분석 도우미입니다.
@@ -26,6 +31,7 @@ export const KEYWORD_INSTRUCTIONS = `${BASE_INSTRUCTIONS}
 사용자의 쟁점 글에서 판례 검색에 쓸 법률 용어를 뽑습니다.
 - 최대 ${MAX_KEYWORDS}개, 판례 문장에 그대로 나올 법한 띄어쓰기 없는 한 낱말로 씁니다. (예: 매각결정, 공매통지, 배분요구)
 - 판례에 잘 쓰이지 않는 합성어는 만들지 않습니다. (예: "통지누락" 대신 "공매통지")
+- 사용자 글의 쟁점에서만 뽑습니다. 이 지시문에 나온 말(법무, 담당자 등)은 넣지 않습니다.
 - 가장 구체적인 용어부터 순서대로 적습니다.
 - 사람 이름, 회사 이름, 주소, 주민등록번호, 전화번호, 계좌번호, 사건 고유 번호, 금액은 절대 넣지 않습니다.
 - 법률 쟁점을 찾을 수 없으면 빈 목록을 돌려줍니다.`;
@@ -37,4 +43,5 @@ export const SUMMARY_INSTRUCTIONS = `${BASE_INSTRUCTIONS}
 - caseNumber: 자료에 적힌 사건번호를 그대로 옮깁니다.
 - relevant: 이 판례가 사용자의 쟁점을 실제로 다루면 true, 낱말만 겹치고 쟁점과 무관하면 false입니다.
 - summary: 판결 요지와 결론을 포함해 쉬운 말로 ${MAX_SUMMARY_LINES}줄 이내로 씁니다. 한 줄에 한 문장씩 씁니다. relevant가 false면 빈 문자열입니다.
+- conflictsWithNewer: 자료 안의 더 최신 대법원 판결(특히 전원합의체)과 같은 법률 문제에서 결론이나 법리가 다르면 true, 아니면 false입니다. 판단할 근거가 없으면 false입니다.
 본문이 "…(중략)…"로 줄어 있으면 중략된 부분을 추측하지 않습니다.`;

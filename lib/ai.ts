@@ -141,6 +141,7 @@ const SummariesSchema = z.object({
       caseNumber: z.string(),
       relevant: z.boolean(),
       summary: z.string(),
+      conflictsWithNewer: z.boolean(),
     }),
   ),
 });
@@ -159,6 +160,7 @@ export async function summarizePrecedents(
         `[사건명] ${item.caseName}`,
         `[법원] ${item.court}`,
         `[선고일] ${item.judgmentDate}`,
+        `[판결유형] ${item.judgmentType}`,
         `[판시사항] ${item.issue}`,
         `[판결요지] ${item.summary}`,
         `[본문] ${item.content}`,

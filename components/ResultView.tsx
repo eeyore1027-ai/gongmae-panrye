@@ -2,7 +2,15 @@
 // Plan SC: 작업 6 판례 요약
 
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
-import { REFERENCE_NOTICE } from "@/lib/rules";
+import type { AnalyzedCase } from "@/app/api/analyze/route";
+import {
+  CHECK_FAILED_LABEL,
+  MAY_CONFLICT_LABEL,
+  NEEDS_REVIEW_LABEL,
+  OVERRULED_LABEL,
+  OVERRULING_NOTICE,
+  REFERENCE_NOTICE,
+} from "@/lib/rules";
 
 export type ResultState =
   | { kind: "idle" }
@@ -18,6 +26,34 @@ function Keywords({ keywords }: { keywords: string[] }) {
       법제처로 보낸 검색어: {keywords.join(", ")}
     </p>
   );
+}
+
+// 판례 변경 관련 경고. 변경된 판례는 근거로 쓰지 않도록 가장 눈에 띄게 표시한다.
+function CaseWarning({ item }: { item: AnalyzedCase }) {
+  if (item.overruledBy) {
+    return (
+      <p className="mb-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+        {OVERRULED_LABEL}: {item.overruledBy.caseNumber} 전원합의체 판결(
+        {item.overruledBy.judgmentDate})이 이 판결과 배치되는 범위에서
+        변경했습니다. 어느 부분이 변경됐는지 확인하기 전에는 근거로 쓰지 마세요.
+      </p>
+    );
+  }
+  if (item.mayConflict) {
+    return (
+      <p className="mb-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+        {MAY_CONFLICT_LABEL} · {NEEDS_REVIEW_LABEL}
+      </p>
+    );
+  }
+  if (item.overrulingCheckFailed) {
+    return (
+      <p className="mb-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+        {CHECK_FAILED_LABEL} · {NEEDS_REVIEW_LABEL}
+      </p>
+    );
+  }
+  return null;
 }
 
 function ResultBody({ state }: { state: ResultState }) {
@@ -60,10 +96,12 @@ function ResultBody({ state }: { state: ResultState }) {
                 .filter(Boolean)
                 .join(" · ")}
             </p>
+            <CaseWarning item={item} />
             <p className="whitespace-pre-line text-sm leading-6">{item.summary}</p>
           </li>
         ))}
       </ul>
+      <p className="mt-3 text-xs text-zinc-500">{OVERRULING_NOTICE}</p>
     </>
   );
 }

@@ -5,7 +5,12 @@
 
 import { z } from "zod";
 import { AiError, extractSearchKeywords, summarizePrecedents } from "@/lib/ai";
-import { findRelevantPrecedents, LawApiError } from "@/lib/law";
+import {
+  checkOverruled,
+  findRelevantPrecedents,
+  LawApiError,
+  type OverruledBy,
+} from "@/lib/law";
 import {
   MAX_QUESTION_CHARS,
   MAX_SUMMARY_LINES,
@@ -25,6 +30,9 @@ export type AnalyzedCase = {
   court: string;
   judgmentDate: string;
   summary: string;
+  overruledBy: OverruledBy | null; // 이 판례를 변경한다고 이름을 적은 전원합의체 판결
+  mayConflict: boolean; // AI 판단: 자료 안의 최신 판결과 다른 취지일 수 있음
+  overrulingCheckFailed: boolean;
 };
 
 export type AnalyzeResponse =
@@ -65,11 +73,15 @@ export async function POST(request: Request) {
       return reply({ status: "no-cases", keywords, message: NOT_FOUND_NOTICE });
     }
 
-    const summaries = await summarizePrecedents(question, precedents);
+    const [summaries, overrulingChecks] = await Promise.all([
+      summarizePrecedents(question, precedents),
+      Promise.all(precedents.map((item) => checkOverruled(item))),
+    ]);
 
     // 사건번호·선고일·법원은 AI 답변이 아니라 법제처 자료의 값을 쓴다.
     const cases: AnalyzedCase[] = [];
-    for (const item of precedents) {
+    for (const [index, item] of precedents.entries()) {
+      const check = overrulingChecks[index];
       const found = summaries.find(
         (summary) => summary.caseNumber.trim() === item.caseNumber,
       );
@@ -80,8 +92,16 @@ export async function POST(request: Request) {
         court: item.court,
         judgmentDate: item.judgmentDate,
         summary: limitLines(found.summary),
+        overruledBy: check.status === "overruled" ? check.by : null,
+        mayConflict: found.conflictsWithNewer,
+        overrulingCheckFailed: check.status === "failed",
       });
     }
+
+    // 변경된 판례는 맨 뒤로, 다른 취지일 수 있는 판례는 그 앞으로 보낸다.
+    const caution = (item: AnalyzedCase) =>
+      item.overruledBy ? 2 : item.mayConflict ? 1 : 0;
+    cases.sort((a, b) => caution(a) - caution(b));
 
     if (cases.length === 0) {
       return reply({ status: "no-cases", keywords, message: NOT_FOUND_NOTICE });

@@ -392,3 +392,87 @@ export async function findRelevantPrecedents(
     .sort((a, b) => b.score - a.score || b.judgmentDate.localeCompare(a.judgmentDate))
     .slice(0, options.limit ?? DEFAULT_RESULT_LIMIT);
 }
+
+// ---------- 판례 변경 확인 ----------
+//
+// 대법원 판례는 전원합의체 판결로 변경된다. 전원합의체 판결은 변경하는 판례를
+// 참조판례에 "(변경)"으로 적거나, 본문에 "…판결은 … 변경하기로 한다"고 적는다.
+// 실제 사례로 확인함: 2007두18154가 95누12026을 변경.
+// 한계: "같은 취지의 판결들"처럼 이름을 적지 않고 변경된 판례는 여기서 잡지 못한다.
+
+const CASE_NUMBER_PATTERN = /\d{2,4}[가-힣]{1,3}\d+/g;
+const MAX_OVERRULING_FETCH = 3;
+
+export type OverruledBy = { caseNumber: string; judgmentDate: string };
+
+export type OverrulingCheck =
+  | { status: "not-found" } // 이름이 적힌 변경 판결을 찾지 못함 (변경되지 않았다는 보장은 아님)
+  | { status: "overruled"; by: OverruledBy }
+  | { status: "failed" }; // 확인 호출이 실패함
+
+// 전원합의체 판결이 변경한다고 이름을 적은 사건번호를 뽑는다.
+export function extractOverruledCaseNumbers(
+  detail: Pick<PrecedentDetail, "content" | "referencedCases">,
+): string[] {
+  const found = new Set<string>();
+
+  for (const match of detail.referencedCases.matchAll(
+    /(\d{2,4}[가-힣]{1,3}\d+)[^,;()\n]{0,20}\((?:변경|폐기)\)/g,
+  )) {
+    found.add(match[1]);
+  }
+
+  for (const match of detail.content.matchAll(/(?:변경|폐기)하기로\s*한다/g)) {
+    const before = detail.content.slice(Math.max(0, match.index - 600), match.index);
+    // "…다. " 뒤부터가 변경 문장이다. (날짜의 마침표는 "다."로 끝나지 않는다)
+    const sentenceStart = Math.max(before.lastIndexOf("다. "), before.lastIndexOf("다.\n"));
+    const sentence = sentenceStart < 0 ? before : before.slice(sentenceStart + 2);
+    for (const caseNumber of sentence.match(CASE_NUMBER_PATTERN) ?? []) {
+      found.add(caseNumber);
+    }
+  }
+  return [...found];
+}
+
+// "2006다1234, 5678" 처럼 번호가 여럿이면 첫 번호로 찾는다.
+function primaryCaseNumber(caseNumber: string): string {
+  return caseNumber.split(/[,\s]/)[0];
+}
+
+// 이 판례를 인용한 더 최신 전원합의체 판결을 찾아, 변경한다고 적었는지 확인한다.
+export async function checkOverruled(
+  item: Pick<PrecedentSummary, "caseNumber" | "judgmentDate">,
+): Promise<OverrulingCheck> {
+  const target = primaryCaseNumber(item.caseNumber);
+  try {
+    const citing = await searchPrecedents(`"${target}"`, {
+      searchIn: "body",
+      display: SEARCH_DISPLAY,
+      supremeCourtOnly: true,
+    });
+    const candidates = citing.items
+      .filter(
+        (candidate) =>
+          isEnBanc(candidate) &&
+          candidate.judgmentDate > item.judgmentDate &&
+          primaryCaseNumber(candidate.caseNumber) !== target,
+      )
+      .slice(0, MAX_OVERRULING_FETCH);
+
+    const details = await Promise.all(
+      candidates.map((candidate) => getPrecedent(candidate.id, Number.POSITIVE_INFINITY)),
+    );
+    // 최신 판결부터 확인한다.
+    for (const detail of details) {
+      if (extractOverruledCaseNumbers(detail).includes(target)) {
+        return {
+          status: "overruled",
+          by: { caseNumber: detail.caseNumber, judgmentDate: detail.judgmentDate },
+        };
+      }
+    }
+    return { status: "not-found" };
+  } catch {
+    return { status: "failed" };
+  }
+}
