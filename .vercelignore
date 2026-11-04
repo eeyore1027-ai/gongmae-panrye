@@ -1,0 +1,6 @@
+# 비밀 값과 작업용 폴더가 Vercel로 올라가지 않게 막는다.
+.env
+.env.*
+.bkit
+.claude
+trash-can
