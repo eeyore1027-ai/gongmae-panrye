@@ -4,12 +4,15 @@
 // 주의: 이 파일은 서버 코드(app/api, 서버 컴포넌트)에서만 불러온다.
 // 인증키(LAW_OC)는 서버에서만 읽고, 오류 메시지나 로그에 넣지 않는다.
 //
-// 상태: 법제처 공식 안내 문서(판례 목록·본문 조회)를 보고 작성했지만,
-// 인증키가 없어 실제 호출로는 아직 확인하지 못했다. 응답 형식은 키가 생기면 확인한다.
+// 상태: 법제처 공식 안내 문서(판례 목록·본문 조회)를 보고 작성하고,
+// 실제 호출(2026-11-04)로 응답 구조(PrecSearch / PrecService, 필드 이름)를 확인했다.
+// 확인된 점: 국세법령정보시스템 출처 판례는 본문을 JSON으로 받을 수 없어서,
+// 기본으로 법원(대법원 데이터 출처) 판례만 검색한다. (PRD: 법원에서 공개한 판례만 사용)
 
 const BASE_URL = "https://www.law.go.kr/DRF";
 const REQUEST_TIMEOUT_MS = 8000;
 const DEFAULT_DISPLAY = 10;
+const DEFAULT_SOURCE = "대법원"; // 법원 공개 판례의 데이터출처명
 const MAX_CONTENT_CHARS = 6000; // 판례 본문이 너무 길 때 AI에 넘기기 전에 자르는 기준(가정값)
 
 // ---------- 오류 ----------
@@ -18,6 +21,7 @@ export type LawApiErrorKind =
   | "config" // 인증키가 설정되지 않음
   | "timeout" // 시간 안에 응답이 없음
   | "network" // 연결 실패
+  | "not-found" // 해당 판례를 찾을 수 없거나 본문을 JSON으로 받을 수 없음
   | "bad-response"; // 응답이 약속한 형식이 아님 (인증 실패 안내 페이지 등)
 
 export class LawApiError extends Error {
@@ -39,6 +43,7 @@ export type PrecedentSummary = {
   court: string; // 법원명
   isSupremeCourt: boolean; // 대법원 여부 (법원종류코드 400201)
   judgmentType: string; // 판결유형
+  source: string; // 데이터출처명 (예: 대법원, 국세법령정보시스템)
 };
 
 export type PrecedentSearchResult = {
@@ -87,10 +92,13 @@ function unwrap(root: unknown): Json {
   return root;
 }
 
+// 선고일자는 "20210315"(본문 조회)나 "2021.03.15"(검색 목록)로 온다. 둘 다 "2021-03-15"로 맞춘다.
 function formatDate(raw: string): string {
-  return /^\d{8}$/.test(raw)
-    ? `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`
-    : raw;
+  if (/^\d{8}$/.test(raw)) {
+    return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+  }
+  if (/^\d{4}\.\d{2}\.\d{2}$/.test(raw)) return raw.replace(/\./g, "-");
+  return raw;
 }
 
 // 본문에 섞여 있는 HTML 태그를 지우고 줄바꿈만 남긴다.
@@ -117,6 +125,7 @@ function toSummary(item: Json): PrecedentSummary {
     court: text(item["법원명"]),
     isSupremeCourt: courtCode === "400201" || text(item["법원명"]) === "대법원",
     judgmentType: text(item["판결유형"]),
+    source: text(item["데이터출처명"]),
   };
 }
 
@@ -133,7 +142,14 @@ export function parseSearchResponse(root: unknown): PrecedentSearchResult {
 }
 
 export function parseDetailResponse(root: unknown): PrecedentDetail {
+  // 찾을 수 없을 때는 {"Law": "일치하는 판례가 없습니다..."} 처럼 안내 문장만 온다.
+  if (isObject(root) && typeof root["Law"] === "string") {
+    throw new LawApiError("not-found", "해당 판례를 찾을 수 없습니다.");
+  }
   const node = unwrap(root);
+  if (text(node["사건번호"]) === "") {
+    throw new LawApiError("not-found", "판례 본문에 사건번호가 없습니다.");
+  }
   const rawContent = stripHtml(text(node["판례내용"]));
   const truncated = rawContent.length > MAX_CONTENT_CHARS;
   return {
@@ -198,7 +214,7 @@ async function callLawApi(
 // 판례 검색 (본문 검색). 최신 선고일 순으로 돌려준다.
 export async function searchPrecedents(
   query: string,
-  options: { display?: number } = {},
+  options: { display?: number; sourceName?: string } = {},
 ): Promise<PrecedentSearchResult> {
   const trimmed = query.trim();
   if (trimmed === "") return { totalCount: 0, items: [] };
@@ -209,6 +225,7 @@ export async function searchPrecedents(
     query: trimmed,
     display: String(options.display ?? DEFAULT_DISPLAY),
     sort: "ddes", // 선고일자 내림차순
+    datSrcNm: options.sourceName ?? DEFAULT_SOURCE, // 법원 판례만 (본문을 JSON으로 받을 수 있음)
   });
   return parseSearchResponse(root);
 }
