@@ -59,6 +59,9 @@ function findDates(text: string): string[] {
   );
 }
 
+// AI에게 자료를 읽는 방법을 알려 주려고 붙인 내부 표시. 사용자에게 보이는 글에 섞이면 안 된다.
+const INTERNAL_MARKER = /\[(?:주의|경매 판례|준용 법령)\]|(?:주의|경매 판례|준용 법령)\s*표시/;
+
 export type KnownFacts = { caseNumbers: Set<string>; dates: Set<string> };
 
 // 가져온 자료 글에 실제로 나오는 사건번호와 날짜를 모은다.
@@ -71,6 +74,7 @@ export function collectKnownFacts(texts: string[]): KnownFacts {
 
 function hasUnknownFact(text: string, facts: KnownFacts): boolean {
   return (
+    INTERNAL_MARKER.test(text) ||
     findCaseNumbers(text).some((number) => !facts.caseNumbers.has(number)) ||
     findDates(text).some((date) => !facts.dates.has(date))
   );
