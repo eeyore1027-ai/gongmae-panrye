@@ -20,6 +20,7 @@ import {
   findRelevantPrecedents,
   isAuctionOnlyPrecedent,
   LawApiError,
+  precedentPageUrl,
   type OverruledBy,
   type PrecedentDetail,
 } from "@/lib/law";
@@ -76,6 +77,7 @@ export type AnalyzedCase = {
   caseName: string;
   court: string;
   judgmentDate: string;
+  lawUrl: string | null; // 국가법령정보센터 판례 화면 주소 (원문 확인용)
   summary: string;
   summaryTrimmed: boolean; // 원문에서 확인되지 않는 문장을 뺐는지
   overruledBy: OverruledBy | null; // 이 판례를 변경한다고 이름을 적은 전원합의체 판결
@@ -279,6 +281,7 @@ export async function POST(request: Request) {
         caseName: item.caseName,
         court: item.court,
         judgmentDate: item.judgmentDate,
+        lawUrl: precedentPageUrl(item.id),
         summary: checked.lines.slice(0, MAX_SUMMARY_LINES).join("\n"),
         summaryTrimmed: checked.removed > 0,
         overruledBy: check.status === "overruled" ? check.by : null,

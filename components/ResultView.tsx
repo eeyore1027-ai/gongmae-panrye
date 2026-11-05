@@ -1,5 +1,5 @@
 // Design Ref: §3 화면 구성 — 결과 영역 (판례 요약 카드)
-// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석, 작업 9 판례 없을 때 대체 설명, 작업 11 범위 밖 안내, 작업 12 추가 질문, 작업 13 결과 복사
+// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석, 작업 9 판례 없을 때 대체 설명, 작업 11 범위 밖 안내, 작업 12 추가 질문, 작업 13 결과 복사, 판례 원문 링크
 
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import { formatResultForCopy, hasCopyableResult } from "@/lib/format";
@@ -13,6 +13,8 @@ import {
   AUCTION_LABEL,
   AUCTION_NOTICE,
   CHECK_FAILED_LABEL,
+  LAW_LINK_LABEL,
+  LAW_SITE_PREFIX,
   MAY_CONFLICT_LABEL,
   NEEDS_REVIEW_LABEL,
   OVERRULED_EXCLUDED_NOTICE,
@@ -222,10 +224,23 @@ function ResultBody({ state }: { state: ResultState }) {
             key={item.caseNumber}
             className="rounded-lg border border-line bg-raised p-4"
           >
-            <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-ink">
-              {item.caseNumber}
-              {item.auctionAnalogy && <AuctionBadge />}
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+              <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-ink">
+                {item.caseNumber}
+                {item.auctionAnalogy && <AuctionBadge />}
+              </p>
+              {item.lawUrl?.startsWith(LAW_SITE_PREFIX) && (
+                <a
+                  href={item.lawUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-none pt-1 text-xs font-medium text-info-text underline underline-offset-2 hover:text-ink"
+                >
+                  {LAW_LINK_LABEL}
+                  <span className="sr-only"> ({item.caseNumber} 원문, 새 창)</span>
+                </a>
+              )}
+            </div>
             <p className="mb-3 text-sm text-muted">
               {[item.court, item.judgmentDate, item.caseName]
                 .filter(Boolean)

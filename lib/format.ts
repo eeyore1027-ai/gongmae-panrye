@@ -51,6 +51,7 @@ export function formatResultForCopy(question: string, data: AnalyzeResponse): st
       ].filter(Boolean);
       const header = [item.court, item.judgmentDate, item.caseName].filter(Boolean).join(" · ");
       lines.push("", `◆ ${item.caseNumber} (${header})`);
+      if (item.lawUrl) lines.push(`  원문: ${item.lawUrl}`);
       if (flags.length > 0) lines.push(`  ※ ${flags.join(" / ")}`);
       for (const line of item.summary.split("\n")) lines.push(`  - ${line}`);
     }

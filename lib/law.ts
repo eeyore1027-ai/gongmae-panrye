@@ -232,6 +232,13 @@ async function callLawApi(
   return root;
 }
 
+// 국가법령정보센터의 판례 화면 주소. 판례일련번호가 숫자일 때만 만든다. (인증키는 들어가지 않는다)
+export function precedentPageUrl(id: string): string | null {
+  return /^\d{1,12}$/.test(id)
+    ? `https://www.law.go.kr/precInfoP.do?mode=0&precSeq=${id}`
+    : null;
+}
+
 // 판례 검색. 기본은 본문 검색이고, 최신 선고일 순으로 돌려준다.
 export async function searchPrecedents(
   query: string,
