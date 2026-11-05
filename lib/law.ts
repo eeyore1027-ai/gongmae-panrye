@@ -9,6 +9,8 @@
 // 확인된 점: 국세법령정보시스템 출처 판례는 본문을 JSON으로 받을 수 없어서,
 // 기본으로 법원(대법원 데이터 출처) 판례만 검색한다. (PRD: 법원에서 공개한 판례만 사용)
 
+import "server-only";
+
 const BASE_URL = "https://www.law.go.kr/DRF";
 const REQUEST_TIMEOUT_MS = 8000;
 const DEFAULT_DISPLAY = 10;

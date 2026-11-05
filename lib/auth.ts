@@ -4,6 +4,7 @@
 // 주의: 서버 코드에서만 불러온다. 접속 코드와 서명용 값은 브라우저로 보내지 않는다.
 // 설정값이 없으면 누구도 들어올 수 없게 막는다.
 
+import "server-only";
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
 import { SESSION_HOURS } from "@/lib/rules";

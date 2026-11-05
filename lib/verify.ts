@@ -62,6 +62,11 @@ function findDates(text: string): string[] {
 // AI에게 자료를 읽는 방법을 알려 주려고 붙인 내부 표시. 사용자에게 보이는 글에 섞이면 안 된다.
 const INTERNAL_MARKER = /\[(?:주의|경매 판례|준용 법령)\]|(?:주의|경매 판례|준용 법령)\s*표시/;
 
+// 사용자 글과 이전 대화 안의 꺾쇠를 모양이 비슷한 다른 글자로 바꾼다. (AI 입력의 구분 표시와 섞이지 않게 한다)
+export function neutralizeMarkup(text: string): string {
+  return text.replace(/</g, "〈").replace(/>/g, "〉");
+}
+
 export type KnownFacts = { caseNumbers: Set<string>; dates: Set<string> };
 
 // 가져온 자료 글에 실제로 나오는 사건번호와 날짜를 모은다.

@@ -13,6 +13,7 @@ const notoSans = Noto_Sans_KR({
 export const metadata: Metadata = {
   title: APP_NAME,
   description: "압류재산 공매 업무를 위한 판례 요약·해석 서비스 (참고용)",
+  robots: { index: false, follow: false },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

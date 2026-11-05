@@ -36,6 +36,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# 작업 기록과 휴지통 (비밀 값이 든 명령이 남을 수 있다)
+.bkit/
+trash-can/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

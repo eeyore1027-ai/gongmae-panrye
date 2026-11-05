@@ -42,6 +42,7 @@ import {
 } from "@/lib/rules";
 import {
   collectKnownFacts,
+  neutralizeMarkup,
   verifyPoints,
   verifyStatutePoints,
   verifySummaryLines,
@@ -225,7 +226,13 @@ export async function POST(request: Request) {
     );
   }
   // 답의 근거는 매번 법제처에서 새로 가져와 검증한다. 화면이 보낸 이전 답변은 맥락으로만 쓴다.
-  const question = withHistory(parsed.data.question, parsed.data.history);
+  const question = withHistory(
+    neutralizeMarkup(parsed.data.question),
+    parsed.data.history.map((turn) => ({
+      question: neutralizeMarkup(turn.question),
+      answer: neutralizeMarkup(turn.answer),
+    })),
+  );
 
   try {
     // 범위 밖 질문은 법제처와 판례 요약을 부르기 전에 끝낸다.

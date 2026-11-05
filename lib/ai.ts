@@ -4,6 +4,7 @@
 // 주의: 이 파일은 서버 코드에서만 불러온다. API 키는 브라우저로 보내지 않는다.
 // 입력 글에는 개인정보가 섞일 수 있으므로 로그나 오류 메시지에 넣지 않는다.
 
+import "server-only";
 import OpenAI from "openai";
 import { z } from "zod";
 import type { PrecedentDetail, StatuteArticle } from "@/lib/law";
