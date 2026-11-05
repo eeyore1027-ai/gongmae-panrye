@@ -218,11 +218,21 @@ function ResultBody({ state }: { state: ResultState }) {
   return (
     <>
       <Keywords keywords={data.keywords} />
-      <ul className="flex flex-col gap-3">
+      {data.cases.length > 1 && (
+        <p className="mb-2 text-xs text-muted">
+          판례 {data.cases.length}건 · 옆으로 밀어서 넘겨 보세요 →
+        </p>
+      )}
+      {/* 판례 카드: 카드뉴스처럼 가로로 나란히 놓고 옆으로 넘긴다. */}
+      <ul
+        tabIndex={0}
+        aria-label="판례 카드 목록 (좌우로 넘기기)"
+        className="-mx-1 flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-3"
+      >
         {data.cases.map((item) => (
           <li
             key={item.caseNumber}
-            className="rounded-lg border border-line bg-raised p-4"
+            className="flex w-[85%] flex-none snap-start flex-col rounded-lg border border-line bg-raised p-4 sm:w-[22rem]"
           >
             <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
               <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-ink">
