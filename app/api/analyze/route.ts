@@ -1,5 +1,5 @@
 // Design Ref: §4.2 분석 흐름 — 쟁점 → 검색어 → 판례 검색 → 요약 → 출력
-// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석, 작업 9 판례 없을 때 대체 설명 (범위 판단은 이후 작업에서 추가)
+// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석, 작업 9 판례 없을 때 대체 설명, 작업 11 범위 판단
 //
 // 주의: 입력 글은 로그에 남기지 않는다. 오류 기록에는 오류 종류만 남긴다.
 
@@ -7,8 +7,8 @@ import { z } from "zod";
 import {
   AiError,
   explainFromStatutes,
-  extractSearchKeywords,
   interpretCase,
+  reviewQuestion,
   summarizePrecedents,
 } from "@/lib/ai";
 import { hasValidSession } from "@/lib/auth";
@@ -32,6 +32,7 @@ import {
   NO_INTERPRETATION_BASIS_NOTICE,
   NO_STATUTE_NOTICE,
   NOT_FOUND_NOTICE,
+  OUT_OF_SCOPE_NOTICE,
   SESSION_EXPIRED_NOTICE,
   STATUTE_FAILED_NOTICE,
   TRY_AGAIN_NOTICE,
@@ -85,6 +86,7 @@ export type AnalyzeResponse =
       message: string;
       statute: StatuteExplanation;
     }
+  | { status: "out-of-scope"; message: string }
   | { status: "unauthorized"; message: string }
   | { status: "error"; message: string };
 
@@ -211,7 +213,12 @@ export async function POST(request: Request) {
   const { question } = parsed.data;
 
   try {
-    const keywords = await extractSearchKeywords(question);
+    // 범위 밖 질문은 법제처와 판례 요약을 부르기 전에 끝낸다.
+    const { inScope, keywords } = await reviewQuestion(question);
+    if (!inScope) {
+      return reply({ status: "out-of-scope", message: OUT_OF_SCOPE_NOTICE });
+    }
+
     const precedents = await findRelevantPrecedents(keywords);
     if (precedents.length === 0) return await replyNoCases(question, keywords);
 

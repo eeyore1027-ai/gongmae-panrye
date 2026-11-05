@@ -1,5 +1,5 @@
 // Design Ref: §3 화면 구성 — 결과 영역 (판례 요약 카드)
-// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석, 작업 9 판례 없을 때 대체 설명
+// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석, 작업 9 판례 없을 때 대체 설명, 작업 11 범위 밖 안내
 
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import type {
@@ -198,6 +198,9 @@ function ResultBody({ state }: { state: ResultState }) {
   const { data } = state;
   if (data.status === "error" || data.status === "unauthorized") {
     return <p className="text-sm text-error-text">{data.message}</p>;
+  }
+  if (data.status === "out-of-scope") {
+    return <p className={mutedText}>{data.message}</p>;
   }
   if (data.status === "no-cases") {
     return (

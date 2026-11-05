@@ -124,12 +124,17 @@ async function askAiJson<T extends z.ZodType>(
   }
 }
 
-const KeywordsSchema = z.object({ keywords: z.array(z.string()) });
+const KeywordsSchema = z.object({
+  inScope: z.boolean(),
+  keywords: z.array(z.string()),
+});
 
-// 쟁점 글에서 법제처로 보낼 검색어를 뽑는다.
+export type QuestionReview = { inScope: boolean; keywords: string[] };
+
+// 공매 업무 질문인지 판단하고, 쟁점 글에서 법제처로 보낼 검색어를 뽑는다.
 // AI가 실수해도 숫자가 든 말(주민번호 등)은 한 번 더 걸러 보내지 않는다.
-export async function extractSearchKeywords(question: string): Promise<string[]> {
-  const { keywords } = await askAiJson("search_keywords", KeywordsSchema, {
+export async function reviewQuestion(question: string): Promise<QuestionReview> {
+  const { inScope, keywords } = await askAiJson("question_review", KeywordsSchema, {
     instructions: KEYWORD_INSTRUCTIONS,
     input: question,
     maxOutputTokens: 1000,
@@ -138,7 +143,10 @@ export async function extractSearchKeywords(question: string): Promise<string[]>
   const cleaned = keywords
     .flatMap((word) => word.trim().split(/\s+/))
     .filter((word) => word.length >= 2 && !/\d/.test(word));
-  return [...new Set(cleaned)].slice(0, MAX_KEYWORDS);
+  return {
+    inScope,
+    keywords: inScope ? [...new Set(cleaned)].slice(0, MAX_KEYWORDS) : [],
+  };
 }
 
 const SummariesSchema = z.object({
