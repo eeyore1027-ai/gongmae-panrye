@@ -7,11 +7,12 @@ import AccessGate from "@/components/AccessGate";
 import BrandLogo from "@/components/BrandLogo";
 import QuestionForm from "@/components/QuestionForm";
 import { hasValidSession } from "@/lib/auth";
+import { ACCESS_GATE_ENABLED } from "@/lib/rules";
 
 // 쿠키를 읽어 접속 여부에 따라 화면을 고른다.
 async function PageContent() {
   await connection(); // 요청마다 접속 만료 시각을 새로 확인한다.
-  if (!(await hasValidSession())) return <AccessGate />;
+  if (ACCESS_GATE_ENABLED && !(await hasValidSession())) return <AccessGate />;
 
   return (
     <div className="flex flex-1 flex-col bg-background">

@@ -25,6 +25,7 @@ import {
   type PrecedentDetail,
 } from "@/lib/law";
 import {
+  ACCESS_GATE_ENABLED,
   ANALYZE_MAX_REQUESTS,
   ANALYZE_WINDOW_MS,
   CHECK_FAILED_LABEL,
@@ -217,7 +218,7 @@ async function buildInterpretation(
 
 export async function POST(request: Request) {
   // 접속하지 않은 요청은 법제처·AI를 부르기 전에 막는다. (AI 비용 보호)
-  if (!(await hasValidSession())) {
+  if (ACCESS_GATE_ENABLED && !(await hasValidSession())) {
     return reply({ status: "unauthorized", message: SESSION_EXPIRED_NOTICE }, 401);
   }
 
