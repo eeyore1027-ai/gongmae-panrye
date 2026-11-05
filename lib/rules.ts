@@ -3,8 +3,8 @@
 
 export const APP_NAME = "공매 판례분석 서비스";
 // 호출 횟수 제한 (가정값, 접속자 주소 기준. 사무실처럼 여러 명이 같은 주소를 쓰면 함께 센다)
-// 접속 코드 확인 켜기/끄기. false면 코드 없이 첫 화면과 분석을 쓸 수 있다. (다시 켜려면 true로 바꾸고 배포)
-export const ACCESS_GATE_ENABLED = false;
+// 접속 코드 확인 켜기/끄기. true면 코드를 맞게 입력해야 화면과 분석을 쓸 수 있다. (끄려면 false로 바꾸고 배포)
+export const ACCESS_GATE_ENABLED = true;
 export const AUTH_MAX_FAILURES = 10; // 틀린 접속 코드 허용 횟수
 export const AUTH_WINDOW_MS = 10 * 60 * 1000; // ... 10분 동안
 export const ANALYZE_MAX_REQUESTS = 60; // 분석 요청 허용 횟수
