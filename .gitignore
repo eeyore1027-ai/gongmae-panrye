@@ -43,3 +43,6 @@ trash-can/
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# 보안 점검 내용이 담긴 내부 문서는 공개 저장소에 올리지 않는다
+/CHECK.md
