@@ -1,26 +1,40 @@
 // Design Ref: §4.2 분석 흐름 — 쟁점 → 검색어 → 판례 검색 → 요약 → 출력
-// Plan SC: 작업 6 판례 요약 (범위 판단, 해석, 대체 설명, 접속 확인은 이후 작업에서 추가)
+// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석 (범위 판단, 대체 설명은 이후 작업에서 추가)
 //
 // 주의: 입력 글은 로그에 남기지 않는다. 오류 기록에는 오류 종류만 남긴다.
 
 import { z } from "zod";
-import { AiError, extractSearchKeywords, summarizePrecedents } from "@/lib/ai";
+import {
+  AiError,
+  extractSearchKeywords,
+  interpretCase,
+  summarizePrecedents,
+} from "@/lib/ai";
 import { hasValidSession } from "@/lib/auth";
 import {
   checkOverruled,
   findRelevantPrecedents,
+  isAuctionOnlyPrecedent,
   LawApiError,
   type OverruledBy,
+  type PrecedentDetail,
 } from "@/lib/law";
 import {
+  CHECK_FAILED_LABEL,
+  INTERPRETATION_FAILED_NOTICE,
+  MAX_CITED_CASES,
+  MAX_INTERPRETATION_POINTS,
   MAX_QUESTION_CHARS,
   MAX_SUMMARY_LINES,
+  MAY_CONFLICT_LABEL,
+  NO_INTERPRETATION_BASIS_NOTICE,
   NOT_FOUND_NOTICE,
   SESSION_EXPIRED_NOTICE,
   TRY_AGAIN_NOTICE,
 } from "@/lib/rules";
+import { verifyPoints, type VerifiedPoint } from "@/lib/verify";
 
-export const maxDuration = 60;
+export const maxDuration = 90;
 
 const RequestSchema = z.object({
   question: z.string().trim().min(1).max(MAX_QUESTION_CHARS),
@@ -35,10 +49,20 @@ export type AnalyzedCase = {
   overruledBy: OverruledBy | null; // 이 판례를 변경한다고 이름을 적은 전원합의체 판결
   mayConflict: boolean; // AI 판단: 자료 안의 최신 판결과 다른 취지일 수 있음
   overrulingCheckFailed: boolean;
+  auctionAnalogy: boolean; // AI 판단: 공매에 준용하는 경매 판례
 };
 
+export type Interpretation =
+  | { status: "ok"; points: VerifiedPoint[] }
+  | { status: "unavailable"; message: string };
+
 export type AnalyzeResponse =
-  | { status: "ok"; keywords: string[]; cases: AnalyzedCase[] }
+  | {
+      status: "ok";
+      keywords: string[];
+      cases: AnalyzedCase[];
+      interpretation: Interpretation;
+    }
   | { status: "no-cases"; keywords: string[]; message: string }
   | { status: "unauthorized"; message: string }
   | { status: "error"; message: string };
@@ -54,6 +78,60 @@ function limitLines(text: string): string {
     .filter(Boolean)
     .slice(0, MAX_SUMMARY_LINES)
     .join("\n");
+}
+
+// 변경된 판례는 빼고 해석을 만든다. 해석만 실패하면 요약은 그대로 보여 준다.
+async function buildInterpretation(
+  question: string,
+  cases: AnalyzedCase[],
+  precedents: PrecedentDetail[],
+): Promise<Interpretation> {
+  const usable = cases
+    .filter((item) => !item.overruledBy)
+    .slice(0, MAX_CITED_CASES);
+  if (usable.length === 0) {
+    return { status: "unavailable", message: NO_INTERPRETATION_BASIS_NOTICE };
+  }
+
+  try {
+    const points = await interpretCase(
+      question,
+      usable.flatMap((item) => {
+        const precedent = precedents.find(
+          (candidate) => candidate.caseNumber === item.caseNumber,
+        );
+        if (!precedent) return [];
+        return [
+          {
+            precedent,
+            isAuctionCase: item.auctionAnalogy,
+            cautions: [
+              ...(item.mayConflict ? [MAY_CONFLICT_LABEL] : []),
+              ...(item.overrulingCheckFailed ? [CHECK_FAILED_LABEL] : []),
+            ],
+          },
+        ];
+      }),
+    );
+    const verified = verifyPoints(
+      points,
+      usable.map((item) => ({
+        caseNumber: item.caseNumber,
+        judgmentDate: item.judgmentDate,
+        auctionAnalogy: item.auctionAnalogy,
+        needsCaution: item.mayConflict || item.overrulingCheckFailed,
+      })),
+      MAX_INTERPRETATION_POINTS,
+    );
+    if (verified.length === 0) {
+      return { status: "unavailable", message: INTERPRETATION_FAILED_NOTICE };
+    }
+    return { status: "ok", points: verified };
+  } catch (error) {
+    const kind = error instanceof AiError ? error.kind : "unknown";
+    console.error(`[analyze] 해석 실패: ${kind}`);
+    return { status: "unavailable", message: INTERPRETATION_FAILED_NOTICE };
+  }
 }
 
 export async function POST(request: Request) {
@@ -103,6 +181,7 @@ export async function POST(request: Request) {
         overruledBy: check.status === "overruled" ? check.by : null,
         mayConflict: found.conflictsWithNewer,
         overrulingCheckFailed: check.status === "failed",
+        auctionAnalogy: found.isAuctionCase || isAuctionOnlyPrecedent(item),
       });
     }
 
@@ -114,7 +193,8 @@ export async function POST(request: Request) {
     if (cases.length === 0) {
       return reply({ status: "no-cases", keywords, message: NOT_FOUND_NOTICE });
     }
-    return reply({ status: "ok", keywords, cases });
+    const interpretation = await buildInterpretation(question, cases, precedents);
+    return reply({ status: "ok", keywords, cases, interpretation });
   } catch (error) {
     const kind =
       error instanceof AiError || error instanceof LawApiError

@@ -8,12 +8,15 @@ import OpenAI from "openai";
 import { z } from "zod";
 import type { PrecedentDetail } from "@/lib/law";
 import {
+  INTERPRETATION_INSTRUCTIONS,
   KEYWORD_INSTRUCTIONS,
   MAX_KEYWORDS,
   SUMMARY_INSTRUCTIONS,
 } from "@/lib/rules";
+import type { RawPoint } from "@/lib/verify";
 
 const REQUEST_TIMEOUT_MS = 60_000;
+const INTERPRETATION_TIMEOUT_MS = 35_000;
 const MAX_RETRIES = 1;
 const DEFAULT_MAX_OUTPUT_TOKENS = 4000;
 
@@ -57,6 +60,8 @@ export type AskAiOptions = {
   instructions: string; // AI가 지킬 규칙
   input: string; // 쟁점과 판례 자료
   maxOutputTokens?: number;
+  timeoutMs?: number;
+  maxRetries?: number;
   jsonFormat?: { name: string; schema: Record<string, unknown> }; // 답변 모양을 강제할 때
 };
 
@@ -68,8 +73,8 @@ export async function askAi(options: AskAiOptions): Promise<string> {
 
   const client = new OpenAI({
     apiKey,
-    timeout: REQUEST_TIMEOUT_MS,
-    maxRetries: MAX_RETRIES,
+    timeout: options.timeoutMs ?? REQUEST_TIMEOUT_MS,
+    maxRetries: options.maxRetries ?? MAX_RETRIES,
   });
 
   let text: string;
@@ -142,35 +147,77 @@ const SummariesSchema = z.object({
       relevant: z.boolean(),
       summary: z.string(),
       conflictsWithNewer: z.boolean(),
+      isAuctionCase: z.boolean(),
     }),
   ),
 });
 
 export type CaseSummary = z.infer<typeof SummariesSchema>["cases"][number];
 
+function formatPrecedent(item: PrecedentDetail): string {
+  return [
+    `[사건번호] ${item.caseNumber}`,
+    `[사건명] ${item.caseName}`,
+    `[법원] ${item.court}`,
+    `[선고일] ${item.judgmentDate}`,
+    `[판결유형] ${item.judgmentType}`,
+    `[판시사항] ${item.issue}`,
+    `[판결요지] ${item.summary}`,
+    `[본문] ${item.content}`,
+  ].join("\n");
+}
+
 // 가져온 판례만 AI에게 주고 요약을 받는다.
 export async function summarizePrecedents(
   question: string,
   precedents: PrecedentDetail[],
 ): Promise<CaseSummary[]> {
-  const material = precedents
-    .map((item) =>
-      [
-        `[사건번호] ${item.caseNumber}`,
-        `[사건명] ${item.caseName}`,
-        `[법원] ${item.court}`,
-        `[선고일] ${item.judgmentDate}`,
-        `[판결유형] ${item.judgmentType}`,
-        `[판시사항] ${item.issue}`,
-        `[판결요지] ${item.summary}`,
-        `[본문] ${item.content}`,
-      ].join("\n"),
-    )
-    .join("\n\n---\n\n");
+  const material = precedents.map(formatPrecedent).join("\n\n---\n\n");
 
   const { cases } = await askAiJson("case_summaries", SummariesSchema, {
     instructions: SUMMARY_INSTRUCTIONS,
     input: `<쟁점>\n${question}\n</쟁점>\n\n<판례자료>\n${material}\n</판례자료>`,
   });
   return cases;
+}
+
+const InterpretationSchema = z.object({
+  points: z.array(
+    z.object({
+      text: z.string(),
+      citedCaseNumbers: z.array(z.string()),
+      needsReview: z.boolean(),
+    }),
+  ),
+});
+
+export type InterpretationSource = {
+  precedent: PrecedentDetail;
+  isAuctionCase: boolean;
+  cautions: string[];
+};
+
+// 앞 단계까지 걸러진 판례만 근거로 주고, 사건에 어떻게 적용되는지 해석을 받는다.
+// 분석 전체가 시간 제한에 걸리지 않도록 이 호출은 짧게 기다리고 다시 시도하지 않는다.
+export async function interpretCase(
+  question: string,
+  sources: InterpretationSource[],
+): Promise<RawPoint[]> {
+  const material = sources
+    .map(({ precedent, isAuctionCase, cautions }) =>
+      [
+        ...(isAuctionCase ? ["[경매 판례]"] : []),
+        ...cautions.map((caution) => `[주의] ${caution}`),
+        formatPrecedent(precedent),
+      ].join("\n"),
+    )
+    .join("\n\n---\n\n");
+
+  const { points } = await askAiJson("case_interpretation", InterpretationSchema, {
+    instructions: INTERPRETATION_INSTRUCTIONS,
+    input: `<쟁점>\n${question}\n</쟁점>\n\n<판례자료>\n${material}\n</판례자료>`,
+    timeoutMs: INTERPRETATION_TIMEOUT_MS,
+    maxRetries: 0,
+  });
+  return points;
 }

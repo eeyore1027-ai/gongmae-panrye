@@ -1,6 +1,7 @@
 // Design Ref: §3 화면 구성 — 접속 전에는 코드 입력, 접속 후에는 입력·결과 화면
 // Plan SC: 작업 10 접속 코드
 
+import { connection } from "next/server";
 import { Suspense } from "react";
 import AccessGate from "@/components/AccessGate";
 import QuestionForm from "@/components/QuestionForm";
@@ -8,6 +9,7 @@ import { hasValidSession } from "@/lib/auth";
 
 // 쿠키를 읽어 접속 여부에 따라 화면을 고른다.
 async function PageContent() {
+  await connection(); // 요청마다 접속 만료 시각을 새로 확인한다.
   if (!(await hasValidSession())) return <AccessGate />;
 
   return (

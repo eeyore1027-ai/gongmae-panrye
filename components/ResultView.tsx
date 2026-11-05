@@ -1,12 +1,15 @@
 // Design Ref: §3 화면 구성 — 결과 영역 (판례 요약 카드)
-// Plan SC: 작업 6 판례 요약
+// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석
 
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
-import type { AnalyzedCase } from "@/app/api/analyze/route";
+import type { AnalyzedCase, Interpretation } from "@/app/api/analyze/route";
 import {
+  AUCTION_LABEL,
+  AUCTION_NOTICE,
   CHECK_FAILED_LABEL,
   MAY_CONFLICT_LABEL,
   NEEDS_REVIEW_LABEL,
+  OVERRULED_EXCLUDED_NOTICE,
   OVERRULED_LABEL,
   OVERRULING_NOTICE,
   REFERENCE_NOTICE,
@@ -56,6 +59,68 @@ function CaseWarning({ item }: { item: AnalyzedCase }) {
   return null;
 }
 
+function AuctionBadge() {
+  return (
+    <span className="rounded bg-sky-100 px-1.5 py-0.5 text-xs font-medium text-sky-900 dark:bg-sky-950 dark:text-sky-200">
+      {AUCTION_LABEL}
+    </span>
+  );
+}
+
+function InterpretationView({
+  interpretation,
+  hasOverruled,
+}: {
+  interpretation: Interpretation;
+  hasOverruled: boolean;
+}) {
+  const usesAuction =
+    interpretation.status === "ok" &&
+    interpretation.points.some((point) =>
+      point.citations.some((citation) => citation.auctionAnalogy),
+    );
+
+  return (
+    <div className="mt-6">
+      <h3 className="mb-2 text-sm font-semibold">사건 적용 해석</h3>
+      {interpretation.status === "unavailable" ? (
+        <p className={mutedText}>{interpretation.message}</p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {interpretation.points.map((point) => (
+            <li
+              key={point.text}
+              className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+            >
+              <p className="text-sm leading-6">{point.text}</p>
+              {point.needsReview && (
+                <p className="mt-2 text-xs font-medium text-amber-800 dark:text-amber-300">
+                  {NEEDS_REVIEW_LABEL}
+                </p>
+              )}
+              <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-500">
+                {point.citations.map((citation) => (
+                  <li
+                    key={citation.caseNumber}
+                    className="flex items-center gap-1"
+                  >
+                    근거: {citation.caseNumber} ({citation.judgmentDate})
+                    {citation.auctionAnalogy && <AuctionBadge />}
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      )}
+      {usesAuction && <p className="mt-3 text-xs text-zinc-500">{AUCTION_NOTICE}</p>}
+      {hasOverruled && (
+        <p className="mt-3 text-xs text-zinc-500">{OVERRULED_EXCLUDED_NOTICE}</p>
+      )}
+    </div>
+  );
+}
+
 function ResultBody({ state }: { state: ResultState }) {
   if (state.kind === "idle") {
     return (
@@ -90,7 +155,10 @@ function ResultBody({ state }: { state: ResultState }) {
             key={item.caseNumber}
             className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
           >
-            <p className="text-sm font-semibold">{item.caseNumber}</p>
+            <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+              {item.caseNumber}
+              {item.auctionAnalogy && <AuctionBadge />}
+            </p>
             <p className="mb-2 text-xs text-zinc-500">
               {[item.court, item.judgmentDate, item.caseName]
                 .filter(Boolean)
@@ -102,6 +170,10 @@ function ResultBody({ state }: { state: ResultState }) {
         ))}
       </ul>
       <p className="mt-3 text-xs text-zinc-500">{OVERRULING_NOTICE}</p>
+      <InterpretationView
+        interpretation={data.interpretation}
+        hasOverruled={data.cases.some((item) => item.overruledBy)}
+      />
     </>
   );
 }

@@ -287,6 +287,12 @@ export type RankedPrecedent = PrecedentDetail & {
 };
 
 // 본문 전체를 보고 점수를 매긴다. 관련이 약하면 null을 돌려준다.
+// 경매만 다루고 공매 언급이 없는 판례인지 글자로 확인한다. AI가 놓쳐도 준용 표시가 빠지지 않게 한다.
+export function isAuctionOnlyPrecedent(detail: PrecedentDetail): boolean {
+  const text = `${detail.issue} ${detail.summary} ${detail.content}`;
+  return /경매|민사집행법/.test(text) && !/공매|국세징수법/.test(text);
+}
+
 export function scorePrecedent(
   detail: PrecedentDetail,
   keywords: string[],

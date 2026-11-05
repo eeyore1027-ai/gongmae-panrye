@@ -20,6 +20,16 @@ export const MAY_CONFLICT_LABEL = "최신 판결과 다른 취지일 수 있음"
 export const CHECK_FAILED_LABEL = "판례 변경 여부를 확인하지 못함";
 export const OVERRULING_NOTICE =
   "판례 변경 여부는 자동으로 확인한 결과입니다. 표시가 없어도 변경되지 않았다는 보장은 아니니, 근거로 쓰기 전에 확인하세요.";
+export const MAX_INTERPRETATION_POINTS = 5; // 해석 항목 수 (가정값)
+export const AUCTION_LABEL = "경매 판례(준용)";
+export const AUCTION_NOTICE =
+  "공매에 직접 적용되는 근거가 아닌 경매 판례를 준용한 내용이 포함되어 있습니다.";
+export const OVERRULED_EXCLUDED_NOTICE =
+  "변경된 판례는 사건 적용 해석의 근거에서 뺐습니다.";
+export const NO_INTERPRETATION_BASIS_NOTICE =
+  "근거로 쓸 수 있는 판례가 없어 사건 적용 해석을 만들지 않았습니다.";
+export const INTERPRETATION_FAILED_NOTICE =
+  "사건 적용 해석을 만들지 못했습니다. 판례 요약만 참고하고, 필요하면 다시 시도해 주세요.";
 
 // 모든 AI 호출에 공통으로 넣는 지시문
 export const BASE_INSTRUCTIONS = `당신은 압류재산 공매(조세) 업무 담당 직원을 돕는 판례 분석 도우미입니다.
@@ -48,4 +58,21 @@ export const SUMMARY_INSTRUCTIONS = `${BASE_INSTRUCTIONS}
 - relevant: 이 판례가 사용자의 쟁점을 실제로 다루면 true, 낱말만 겹치고 쟁점과 무관하면 false입니다.
 - summary: 판결 요지와 결론을 포함해 쉬운 말로 ${MAX_SUMMARY_LINES}줄 이내로 씁니다. 한 줄에 한 문장씩 씁니다. relevant가 false면 빈 문자열입니다.
 - conflictsWithNewer: 자료 안의 더 최신 대법원 판결(특히 전원합의체)과 같은 법률 문제에서 결론이나 법리가 다르면 true, 아니면 false입니다. 판단할 근거가 없으면 false입니다.
+- isAuctionCase: 민사집행법 등에 따른 법원 경매 절차를 다룬 판례면 true입니다. 국세징수법 등에 따른 공매 절차를 다뤘다면 경매가 함께 언급되어도 false입니다.
 본문이 "…(중략)…"로 줄어 있으면 중략된 부분을 추측하지 않습니다.`;
+
+// 사건 적용 해석 지시문 (PRD 5번 must 2)
+export const INTERPRETATION_INSTRUCTIONS = `${BASE_INSTRUCTIONS}
+
+사용자의 쟁점에 판례 자료가 어떻게 적용되는지 해석합니다.
+- points: 해석 항목을 최대 ${MAX_INTERPRETATION_POINTS}개 씁니다. 항목마다 한두 문장입니다.
+- text: 판례의 법리가 사용자의 사건에 어떻게 연결되는지 쉬운 말로 씁니다. "~로 볼 여지가 있습니다"처럼 쓰고, 결론을 단정하지 않습니다. 사건번호와 선고일은 text에 쓰지 않습니다.
+- citedCaseNumbers: 그 항목의 근거가 된 판례의 사건번호를 자료에 적힌 그대로 적습니다. 근거 판례가 없는 내용은 쓰지 않습니다.
+- needsReview: 자료만으로 확신할 수 없거나 사건의 사실관계에 따라 달라지면 true입니다.
+- 쟁점 글에 판단에 필요한 사실이 없으면 없는 사실을 지어내지 않습니다. 어떤 사실을 확인해야 하는지 쓰고 needsReview를 true로 합니다.
+- 사용자가 쟁점 글에 이미 밝힌 사실은 불명확하다고 하지 않고 그대로 전제합니다.
+- 같은 내용을 되풀이하지 않고, 마지막에 앞 내용을 다시 정리하는 항목을 넣지 않습니다.
+- "자료"라는 말 대신 "이 판례"처럼 씁니다.
+- 판례끼리 결론이 다르면 최신 대법원 판례를 우선하고, 다른 판례가 있다는 점도 씁니다.
+- "[경매 판례]"로 표시된 판례를 근거로 쓰면 공매에 준용한 것임을 text에 밝힙니다.
+- "[주의]"로 표시된 판례는 그 주의 내용을 고려해 조심스럽게 씁니다.`;
