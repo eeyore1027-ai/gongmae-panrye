@@ -1,5 +1,5 @@
 // Design Ref: §3 화면 구성 — 결과 영역 (판례 요약 카드)
-// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석, 작업 9 판례 없을 때 대체 설명, 작업 11 범위 밖 안내
+// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석, 작업 9 판례 없을 때 대체 설명, 작업 11 범위 밖 안내, 작업 12 추가 질문
 
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
 import type {
@@ -246,13 +246,26 @@ function ResultBody({ state }: { state: ResultState }) {
   );
 }
 
-export default function ResultView({ state }: { state: ResultState }) {
+export default function ResultView({
+  state,
+  heading = "분석 결과",
+  question,
+}: {
+  state: ResultState;
+  heading?: string;
+  question?: string;
+}) {
   return (
     <section
       aria-live="polite"
       className="min-h-40 rounded-lg border border-line bg-surface p-4"
     >
-      <h2 className="mb-3 text-base font-semibold text-ink">분석 결과</h2>
+      <h2 className="mb-3 text-base font-semibold text-ink">{heading}</h2>
+      {question && (
+        <p className="mb-3 whitespace-pre-line rounded border border-line bg-raised px-3 py-2 text-sm">
+          {question}
+        </p>
+      )}
       <ResultBody state={state} />
       <p className="mt-4 border-t border-line pt-3 text-sm text-foreground">
         {REFERENCE_NOTICE}

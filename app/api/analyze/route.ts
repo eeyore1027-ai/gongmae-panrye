@@ -1,5 +1,5 @@
 // Design Ref: §4.2 분석 흐름 — 쟁점 → 검색어 → 판례 검색 → 요약 → 출력
-// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석, 작업 9 판례 없을 때 대체 설명, 작업 11 범위 판단
+// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석, 작업 9 판례 없을 때 대체 설명, 작업 11 범위 판단, 작업 12 추가 질문
 //
 // 주의: 입력 글은 로그에 남기지 않는다. 오류 기록에는 오류 종류만 남긴다.
 
@@ -9,6 +9,7 @@ import {
   explainFromStatutes,
   interpretCase,
   reviewQuestion,
+  withHistory,
   summarizePrecedents,
 } from "@/lib/ai";
 import { hasValidSession } from "@/lib/auth";
@@ -25,6 +26,8 @@ import {
   CHECK_FAILED_LABEL,
   INTERPRETATION_FAILED_NOTICE,
   MAX_CITED_CASES,
+  MAX_HISTORY_ANSWER_CHARS,
+  MAX_HISTORY_TURNS,
   MAX_INTERPRETATION_POINTS,
   MAX_QUESTION_CHARS,
   MAX_SUMMARY_LINES,
@@ -50,7 +53,18 @@ export const maxDuration = 90;
 
 const RequestSchema = z.object({
   question: z.string().trim().min(1).max(MAX_QUESTION_CHARS),
+  history: z
+    .array(
+      z.object({
+        question: z.string().max(MAX_QUESTION_CHARS),
+        answer: z.string().max(MAX_HISTORY_ANSWER_CHARS),
+      }),
+    )
+    .max(MAX_HISTORY_TURNS)
+    .default([]),
 });
+
+export type HistoryTurn = z.infer<typeof RequestSchema>["history"][number];
 
 export type AnalyzedCase = {
   caseNumber: string;
@@ -210,7 +224,8 @@ export async function POST(request: Request) {
       400,
     );
   }
-  const { question } = parsed.data;
+  // 답의 근거는 매번 법제처에서 새로 가져와 검증한다. 화면이 보낸 이전 답변은 맥락으로만 쓴다.
+  const question = withHistory(parsed.data.question, parsed.data.history);
 
   try {
     // 범위 밖 질문은 법제처와 판례 요약을 부르기 전에 끝낸다.

@@ -124,6 +124,18 @@ async function askAiJson<T extends z.ZodType>(
   }
 }
 
+// 추가 질문: 이전 대화를 맥락으로 붙인다. 서버에 저장하지 않고 이번 AI 호출에만 쓴다.
+export function withHistory(
+  question: string,
+  history: { question: string; answer: string }[],
+): string {
+  if (history.length === 0) return question;
+  const previous = history
+    .map((turn) => `[질문] ${turn.question}\n[답변 요지] ${turn.answer}`)
+    .join("\n\n");
+  return `<이전대화>\n${previous}\n</이전대화>\n\n지금 질문: ${question}`;
+}
+
 const KeywordsSchema = z.object({
   inScope: z.boolean(),
   keywords: z.array(z.string()),
