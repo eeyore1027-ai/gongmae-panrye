@@ -1,25 +1,28 @@
 @import "tailwindcss";
 
-/* 디자인 색상: 어둠 속의 빛나는 문 콘셉트. 다크 테마 하나로 고정한다. */
+/* 디자인 색상: 흰 종이 위의 검은 글자와, 열쇠 구멍 빛이 있는 남색 브랜드 영역. 밝은 테마 하나로 고정한다. */
 :root {
-  color-scheme: dark;
-  --background: #050505;
-  --surface: #111110;
-  --raised: #191816;
-  --line: rgb(255 255 255 / 0.12);
-  --foreground: #edeae4;
-  --muted: #a8a29a;
-  --light: #fff8ec;
-  --glow: #c9a876;
-  --danger-bg: #2c0f0f;
-  --danger-line: #9b3f3f;
-  --danger-text: #fecaca;
-  --warn-bg: #2a1e0a;
-  --warn-line: #8f6d2b;
-  --warn-text: #fcdca6;
-  --info-bg: #0f2531;
-  --info-text: #bae6fd;
-  --error-text: #fca5a5;
+  color-scheme: light;
+  --background: #ffffff;
+  --surface: #f7f7f8;
+  --raised: #ffffff;
+  --line: #e5e5e5;
+  --foreground: #1f2937;
+  --muted: #4a4d54;
+  --ink: #030712;
+  --on-ink: #f9fafb;
+  --glow: #3b4fd8;
+  --danger-bg: #fef2f2;
+  --danger-line: #fca5a5;
+  --danger-text: #991b1b;
+  --warn-bg: #fffbeb;
+  --warn-line: #fcd34d;
+  --warn-text: #78350f;
+  --info-bg: #e8ebff;
+  --info-text: #2d3db0;
+  --error-text: #b91c1c;
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --brand-img: url(https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/d889cba6-535c-450f-9b74-7270c0e01e9a.webp);
 }
 
 @theme inline {
@@ -29,7 +32,7 @@
   --color-line: var(--line);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
-  --color-light: var(--light);
+  --color-ink: var(--ink);
   --color-glow: var(--glow);
   --color-danger-bg: var(--danger-bg);
   --color-danger-line: var(--danger-line);
@@ -41,7 +44,6 @@
   --color-info-text: var(--info-text);
   --color-error-text: var(--error-text);
   --font-sans: var(--font-noto-sans);
-  --font-serif: var(--font-noto-serif);
 }
 
 body {
@@ -53,64 +55,57 @@ body {
 /* 키보드로 이동할 때 현재 위치가 항상 보이게 한다. */
 @layer base {
   :focus-visible {
-    outline: 2px solid var(--light);
+    outline: 2px solid #6b7280;
     outline-offset: 2px;
   }
 }
 
 @layer components {
-  /* 문의 빛을 닮은 주요 버튼 */
-  .btn-light {
+  /* 주요 버튼 */
+  .btn-primary {
     border-radius: 0.5rem;
-    background: var(--light);
+    background: var(--ink);
     padding: 0.625rem 1.25rem;
     font-size: 0.875rem;
-    font-weight: 600;
-    color: #050505;
-    box-shadow: 0 0 24px rgb(255 248 236 / 0.22);
-    transition: box-shadow 200ms, background-color 200ms;
+    font-weight: 500;
+    color: var(--on-ink);
+    transition: background-color 150ms;
   }
-  .btn-light:hover:not(:disabled) {
-    background: #ffffff;
-    box-shadow: 0 0 36px rgb(255 248 236 / 0.4);
+  .btn-primary:hover:not(:disabled) {
+    background: #111827;
   }
-  .btn-light:disabled {
+  .btn-primary:disabled {
     cursor: not-allowed;
     opacity: 0.4;
-    box-shadow: none;
   }
 
-  /* 입력창: 포커스하면 테두리가 따뜻한 빛으로 빛난다 */
+  /* 입력창 */
   .field {
     width: 100%;
-    border: 1px solid rgb(255 255 255 / 0.22);
+    border: 1px solid var(--line);
     border-radius: 0.5rem;
-    background: rgb(0 0 0 / 0.45);
+    background: var(--background);
     padding: 0.75rem;
     font-size: 0.9375rem;
     line-height: 1.75;
-    color: var(--foreground);
-    transition: border-color 200ms, box-shadow 200ms;
+    color: var(--ink);
+    box-shadow: var(--shadow-xs);
+    transition: border-color 150ms, box-shadow 150ms;
   }
   .field::placeholder {
     color: var(--muted);
+    opacity: 1;
   }
   .field:focus {
-    border-color: var(--glow);
-    outline: 1px solid var(--glow);
-    outline-offset: 0;
-    box-shadow: 0 0 20px rgb(201 168 118 / 0.3);
+    border-color: #a3a3a3;
+    outline: none;
+    box-shadow: var(--shadow-xs), 0 0 0 3px rgb(163 163 163 / 0.35);
   }
 
-  /* 메인 화면 위쪽에서 희미하게 내려오는 빛 (장식이라 클릭을 막지 않는다) */
-  .light-beam {
-    pointer-events: none;
-    position: absolute;
-    inset: 0 0 auto;
-    height: 26rem;
-    background:
-      radial-gradient(ellipse 5rem 22rem at 50% 0, rgb(255 248 236 / 0.13), transparent),
-      radial-gradient(ellipse 28rem 18rem at 50% 0, rgb(201 168 118 / 0.1), transparent);
+  /* 메인 화면 위쪽의 남색 띠: 열쇠 구멍 사진의 빛줄기 부분을 보여 준다 */
+  .brand-band {
+    background: #0b0a1f var(--brand-img) center 72% / cover no-repeat;
+    color: #fff;
   }
 
   /* 분석 중에 천천히 밝아졌다 어두워지는 세로 빛 */
@@ -119,13 +114,8 @@ body {
     height: 2.5rem;
     flex: none;
     border-radius: 1px;
-    background: linear-gradient(to bottom, transparent, var(--light), transparent);
-    box-shadow: 0 0 12px rgb(255 248 236 / 0.5);
+    background: linear-gradient(to bottom, transparent, var(--glow), transparent);
     animation: beam-pulse 2s ease-in-out infinite;
-  }
-
-  .fade-in {
-    animation: fade-in 1s ease-out both;
   }
 }
 
@@ -139,21 +129,629 @@ body {
   }
 }
 
-@keyframes fade-in {
+/* 로고: 접속 화면과 메인 화면이 함께 쓴다 */
+.logo {
+  --u: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: calc(10 * var(--u));
+}
+.logo__mark {
+  width: calc(36 * var(--u));
+  height: calc(36 * var(--u));
+  flex: none;
+  border-radius: calc(10 * var(--u));
+  background: #fff;
+  display: grid;
+  place-items: center;
+}
+.logo__mark svg {
+  width: calc(20 * var(--u));
+  height: calc(20 * var(--u));
+}
+.logo__word {
+  font-size: calc(20 * var(--u));
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+/* ==================================================================
+   접속 화면: 왼쪽 브랜드 영역 + 오른쪽 접속 코드 영역
+   길이는 1470 x 900 기준 디자인 픽셀에 --u를 곱해 화면 크기에 맞춰 함께 커지고 작아진다.
+   ================================================================== */
+.gate {
+  --u: 1px;
+  --hero-title: #f1f2f7;
+  --hero-copy: rgb(255 255 255 / 0.68);
+  --hero-rule: rgb(255 255 255 / 0.22);
+  --source-ink: rgb(199 210 254 / 0.8);
+  --glass-bg: rgb(11 8 19 / 0.44);
+  --glass-border: rgb(255 255 255 / 0.1);
+  --glass-filter: blur(16px) saturate(0.8);
+  display: flex;
+  flex: 1;
+  width: 100%;
+  min-height: 100dvh;
+  background: var(--background);
+  color: var(--ink);
+}
+@media (min-width: 740px) {
+  .gate {
+    --u-floor: min(clamp(0.8px, calc(0.8px + (1176px - 100vw) / 1180), 1px), max(0.8px, calc(100dvh / 772), calc(500px - 100dvh)));
+    --u: min(4px, max(var(--u-floor), min(calc(100vw / 1470), calc(100dvh / 900))));
+  }
+}
+@media (min-width: 740px) and (orientation: portrait) {
+  .gate {
+    --u-floor: min(1px, calc(100dvh / 772));
+  }
+}
+.gate .logo {
+  --u: inherit;
+  height: calc(40 * var(--u));
+}
+.gate .logo__mark {
+  width: calc(40 * var(--u));
+  height: calc(40 * var(--u));
+  border-radius: calc(12 * var(--u));
+}
+.gate .logo__mark svg {
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+}
+.gate .logo__word {
+  font-size: calc(22 * var(--u));
+}
+
+/* ---------------- 왼쪽 브랜드 영역 ---------------- */
+.gate-brand {
+  position: relative;
+  flex: 0 0 calc(100% * 610 / 1470);
+  max-width: calc(100% - 450 * var(--u));
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: calc(24 * var(--u));
+  container-type: inline-size;
+  padding: calc(32 * var(--u)) 0;
+  overflow: hidden;
+  isolation: isolate;
+  color: #fff;
+  background: #0b0a1f var(--brand-img) center / cover no-repeat;
+}
+/* 열쇠 구멍이 숨 쉬듯 빛난다: 따뜻한 빛이 커졌다 줄고, 아래 빛줄기는 천천히 흐른다. */
+.gate-brand::before,
+.gate-brand::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+.gate-brand::before {
+  left: 58%;
+  top: 6%;
+  width: 62%;
+  height: 42%;
+  background: radial-gradient(closest-side, rgb(255 170 72 / 0.55), rgb(255 120 40 / 0.18) 55%, transparent);
+  mix-blend-mode: screen;
+  filter: blur(calc(6 * var(--u)));
+  animation: gate-bloom 5.5s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+.gate-brand::after {
+  left: -10%;
+  top: 42%;
+  width: 120%;
+  height: 50%;
+  background: radial-gradient(closest-side, rgb(70 120 255 / 0.32), transparent);
+  mix-blend-mode: screen;
+  animation: gate-drift 9s cubic-bezier(0.45, 0, 0.55, 1) infinite alternate;
+}
+@keyframes gate-bloom {
+  from {
+    opacity: 0.35;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+}
+@keyframes gate-drift {
+  from {
+    opacity: 0.45;
+    transform: translate3d(-6%, 2%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(6%, -3%, 0);
+  }
+}
+.gate-inset {
+  --inset: clamp(calc(24 * var(--u)), calc(100cqi - 465.75 * var(--u)), calc(144 * var(--u)));
+  --measure: min(calc(338 * var(--u)), calc(100cqi - var(--inset) - 24 * var(--u)));
+  padding-left: var(--inset);
+  padding-right: calc(24 * var(--u));
+}
+.gate-hero__title {
+  margin: 0;
+  max-width: var(--measure);
+  font-size: calc(30 * var(--u));
+  line-height: calc(40 * var(--u));
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--hero-title);
+}
+.gate-hero__copy {
+  margin: calc(12 * var(--u)) 0 0;
+  max-width: var(--measure);
+  font-size: calc(16 * var(--u));
+  line-height: calc(25 * var(--u));
+  word-break: keep-all;
+  color: var(--hero-copy);
+}
+
+/* 기능 소개 카드가 끝없이 흘러간다. 마우스를 올리면 멈춘다. */
+.gate-reel {
+  position: relative;
+  margin-top: calc(40 * var(--u));
+  height: calc(240 * var(--u));
+}
+.gate-reel__track {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  gap: calc(16 * var(--u));
+  animation: gate-reel 42s linear infinite;
+  will-change: transform;
+}
+@media (hover: hover) {
+  .gate-reel:hover .gate-reel__track {
+    animation-play-state: paused;
+  }
+}
+@keyframes gate-reel {
+  from {
+    transform: translateX(calc(-43 * var(--u)));
+  }
+  to {
+    transform: translateX(calc((-43 - 828) * var(--u)));
+  }
+}
+.gate-card {
+  flex: none;
+  width: calc(260 * var(--u));
+  height: calc(240 * var(--u));
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: calc(24 * var(--u));
+  border: calc(1 * var(--u)) solid var(--glass-border);
+  border-radius: calc(14 * var(--u));
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: var(--glass-filter);
+  backdrop-filter: var(--glass-filter);
+}
+.gate-card__text {
+  margin: 0;
+  font-size: calc(14 * var(--u));
+  line-height: calc(22 * var(--u));
+  word-break: keep-all;
+  color: rgb(255 255 255 / 0.87);
+}
+.gate-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: calc(12 * var(--u));
+}
+.gate-card__name {
+  font-size: calc(14 * var(--u));
+  line-height: calc(20 * var(--u));
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.92);
+}
+.gate-card__badge {
+  flex: none;
+  width: calc(32 * var(--u));
+  height: calc(32 * var(--u));
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: calc(12 * var(--u));
+  font-weight: 600;
+  color: rgb(255 255 255 / 0.92);
+  box-shadow: inset 0 0 0 calc(1 * var(--u)) rgb(255 255 255 / 0.18);
+}
+.gate-card__badge--a {
+  background: linear-gradient(135deg, #f6b6a0, #8d6ab8);
+}
+.gate-card__badge--b {
+  background: linear-gradient(135deg, #9aa3b8, #3c4256);
+}
+.gate-card__badge--c {
+  background: linear-gradient(135deg, #ffb36b, #5b6cd6);
+}
+
+/* 근거 자료 */
+.gate-sources {
+  margin-top: calc(36 * var(--u));
+}
+.gate-sources__rule {
+  display: flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  max-width: var(--measure);
+}
+.gate-sources__rule::before,
+.gate-sources__rule::after {
+  content: "";
+  flex: 1;
+  height: calc(1 * var(--u));
+  background: var(--hero-rule);
+}
+.gate-sources__label {
+  font-size: calc(14 * var(--u));
+  line-height: calc(20 * var(--u));
+  color: rgb(255 255 255 / 0.92);
+  white-space: nowrap;
+}
+.gate-sources__list {
+  max-width: var(--measure);
+  margin: calc(18 * var(--u)) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: calc(8 * var(--u)) calc(18 * var(--u));
+  font-size: calc(14 * var(--u));
+  line-height: calc(20 * var(--u));
+  font-weight: 500;
+  color: var(--source-ink);
+}
+.gate-legal {
+  margin: 0;
+  font-size: calc(13 * var(--u));
+  line-height: calc(20 * var(--u));
+  word-break: keep-all;
+  color: rgb(255 255 255 / 0.62);
+}
+
+/* ---------------- 오른쪽 접속 코드 영역 ---------------- */
+.gate-auth {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+}
+.gate-auth__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(33.5 * var(--u)) calc(24 * var(--u)) 0;
+}
+.gate-panel {
+  width: calc(402 * var(--u));
+  max-width: 100%;
+}
+.gate-panel__title {
+  margin: 0;
+  font-size: calc(32 * var(--u));
+  line-height: calc(40 * var(--u));
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  color: var(--ink);
+}
+.gate-panel__sub {
+  margin: calc(4 * var(--u)) 0 0;
+  font-size: calc(17 * var(--u));
+  line-height: calc(26 * var(--u));
+  color: var(--muted);
+}
+.gate-form {
+  margin-top: calc(28 * var(--u));
+}
+.gate-label {
+  display: block;
+  font-size: calc(14 * var(--u));
+  line-height: calc(20 * var(--u));
+  color: var(--muted);
+}
+.gate-control {
+  position: relative;
+  margin-top: calc(7 * var(--u));
+}
+.gate-control__icon {
+  position: absolute;
+  left: calc(10 * var(--u));
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(16 * var(--u));
+  height: calc(16 * var(--u));
+  color: #4e5157;
+  pointer-events: none;
+}
+.gate-input {
+  display: block;
+  width: 100%;
+  height: calc(40 * var(--u));
+  padding: 0 calc(40 * var(--u)) 0 calc(34 * var(--u));
+  font-size: calc(14 * var(--u));
+  color: var(--ink);
+  background: var(--background);
+  border: calc(1 * var(--u)) solid var(--line);
+  border-radius: calc(8 * var(--u));
+  box-shadow: var(--shadow-xs);
+  outline: none;
+  transition: border-color 150ms, box-shadow 150ms;
+}
+.gate-input::placeholder {
+  color: var(--muted);
+  opacity: 1;
+}
+.gate-input:focus-visible {
+  border-color: #a3a3a3;
+  box-shadow: var(--shadow-xs), 0 0 0 calc(3 * var(--u)) rgb(163 163 163 / 0.35);
+}
+.gate-reveal {
+  position: absolute;
+  right: calc(6 * var(--u));
+  top: 50%;
+  transform: translateY(-50%);
+  width: calc(28 * var(--u));
+  height: calc(28 * var(--u));
+  display: grid;
+  place-items: center;
+  color: #4e5157;
+  border-radius: calc(6 * var(--u));
+  cursor: pointer;
+}
+.gate-reveal svg {
+  width: calc(15 * var(--u));
+  height: calc(15 * var(--u));
+}
+.gate-message {
+  margin: calc(10 * var(--u)) 0 0;
+  font-size: calc(14 * var(--u));
+  line-height: calc(20 * var(--u));
+  color: var(--error-text);
+}
+.gate-submit {
+  display: block;
+  width: 100%;
+  height: calc(42 * var(--u));
+  margin-top: calc(20 * var(--u));
+  border-radius: calc(8 * var(--u));
+  background: var(--ink);
+  color: var(--on-ink);
+  font-size: calc(15 * var(--u));
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 150ms;
+}
+.gate-submit:hover:not(:disabled) {
+  background: #111827;
+}
+.gate-submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+.gate-note {
+  margin: calc(20 * var(--u)) 0 0;
+  text-align: center;
+  font-size: calc(14 * var(--u));
+  line-height: calc(20 * var(--u));
+  word-break: keep-all;
+  color: var(--muted);
+}
+.gate-auth__foot {
+  padding: calc(24 * var(--u)) calc(24 * var(--u)) calc(33 * var(--u));
+  text-align: center;
+  font-size: calc(14 * var(--u));
+  line-height: calc(20 * var(--u));
+  color: var(--muted);
+}
+
+/* 휴대폰에서 입력창을 눌러도 화면이 확대되지 않게 글자를 16px 이상으로 둔다. */
+@media (pointer: coarse) {
+  .gate-input {
+    font-size: max(16px, calc(14 * var(--u)));
+  }
+}
+
+/* ---------------- 좁은 화면: 위 띠(제목) → 접속 코드 → 아래 띠(소개) ---------------- */
+@media (max-width: 739.98px) {
+  .gate {
+    --g: clamp(16px, 5vw, 32px);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr auto auto auto auto;
+  }
+  .gate::before,
+  .gate::after {
+    content: "";
+    grid-column: 1;
+    z-index: 0;
+    background: #0b0a1f var(--brand-img) center top / cover no-repeat;
+  }
+  .gate::before {
+    grid-row: 1 / 3;
+    background-position: center 72%;
+  }
+  .gate::after {
+    grid-row: 5 / 8;
+    background-position: center bottom;
+  }
+  .gate-brand,
+  .gate-brand__mid,
+  .gate-auth {
+    display: contents;
+  }
+  .gate-brand::before,
+  .gate-brand::after {
+    display: none;
+  }
+  .gate-top,
+  .gate-hero,
+  .gate-auth__main,
+  .gate-auth__foot,
+  .gate-reel,
+  .gate-sources,
+  .gate-bottom {
+    grid-column: 1;
+    position: relative;
+    z-index: 1;
+  }
+  .gate-top {
+    grid-row: 1;
+    padding-top: calc(20px + env(safe-area-inset-top));
+  }
+  .gate-hero {
+    grid-row: 2;
+    padding-top: 32px;
+    padding-bottom: 36px;
+  }
+  .gate-auth__main {
+    grid-row: 3;
+    align-items: flex-start;
+    padding: 32px var(--g) 8px;
+  }
+  .gate-auth__foot {
+    grid-row: 4;
+    padding: 12px var(--g) 28px;
+  }
+  .gate-reel {
+    grid-row: 5;
+    margin-top: 40px;
+    overflow: clip;
+  }
+  .gate-sources {
+    grid-row: 6;
+  }
+  .gate-bottom {
+    grid-row: 7;
+    padding-top: 28px;
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  }
+  .gate-inset {
+    --inset: var(--g);
+    --measure: min(100%, 480px);
+    padding-left: var(--g);
+    padding-right: var(--g);
+  }
+  .gate-hero__title {
+    font-size: clamp(26px, 7.6vw, 30px);
+    line-height: 1.32;
+  }
+  .gate-reel__track {
+    animation-name: gate-reel-m;
+  }
+  @keyframes gate-reel-m {
+    from {
+      transform: translateX(var(--g));
+    }
+    to {
+      transform: translateX(calc(var(--g) - 828px));
+    }
+  }
+  .gate-input {
+    font-size: 16px;
+  }
+  .gate-reveal {
+    width: 36px;
+    height: 36px;
+    right: 2px;
+  }
+}
+
+/* ---------------- 처음 열릴 때 한 번만 나오는 움직임 ---------------- */
+.e-line {
+  display: block;
+  clip-path: inset(0 -0.1em -0.25em -0.1em);
+}
+.e-rise {
+  display: block;
+  animation: enter-rise 950ms cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms) both;
+}
+.e-settle {
+  animation: enter-settle 640ms cubic-bezier(0.22, 1, 0.36, 1) var(--d, 0ms) both;
+}
+.e-lift {
+  animation: enter-lift 1050ms cubic-bezier(0.16, 1, 0.3, 1) var(--d, 0ms) both;
+}
+.e-fade {
+  animation: enter-fade 520ms cubic-bezier(0.33, 1, 0.68, 1) var(--d, 0ms) both;
+}
+@keyframes enter-rise {
+  from {
+    transform: translateY(125%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes enter-settle {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translate3d(0, 10px, 0);
   }
   to {
     opacity: 1;
     transform: none;
   }
 }
+@keyframes enter-lift {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes enter-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 
 /* "동작 줄이기"를 켠 사용자에게는 움직임을 보여 주지 않는다. */
 @media (prefers-reduced-motion: reduce) {
   .loading-beam,
-  .fade-in {
+  .gate-reel__track,
+  .gate-brand::before,
+  .gate-brand::after,
+  .e-rise,
+  .e-settle,
+  .e-lift,
+  .e-fade {
     animation: none;
+  }
+  .gate-reel__track {
+    transform: translateX(calc(-43 * var(--u)));
+  }
+  .gate-brand::before,
+  .gate-brand::after {
+    opacity: 0.6;
+  }
+}
+@media (prefers-reduced-motion: reduce) and (max-width: 739.98px) {
+  .gate-reel__track {
+    transform: translateX(var(--g));
+  }
+  .gate-reel {
+    overflow-x: auto;
   }
 }

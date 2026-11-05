@@ -4,6 +4,7 @@
 import { connection } from "next/server";
 import { Suspense } from "react";
 import AccessGate from "@/components/AccessGate";
+import BrandLogo from "@/components/BrandLogo";
 import QuestionForm from "@/components/QuestionForm";
 import { hasValidSession } from "@/lib/auth";
 
@@ -13,21 +14,19 @@ async function PageContent() {
   if (!(await hasValidSession())) return <AccessGate />;
 
   return (
-    <div className="relative flex flex-1 flex-col overflow-hidden bg-background">
-      <div aria-hidden="true" className="light-beam" />
-
-      <header className="relative border-b border-line px-4 py-3">
+    <div className="flex flex-1 flex-col bg-background">
+      <header className="brand-band px-4 py-4">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-3">
-          <h1 className="font-serif text-lg font-semibold text-light">
-            공매 판례분석 도우미
+          <h1>
+            <BrandLogo />
           </h1>
-          <span className="flex-none rounded-full border border-line px-3 py-1 text-xs text-muted">
+          <span className="flex-none rounded-full border border-white/25 bg-black/30 px-3 py-1 text-xs text-white">
             참고용 서비스
           </span>
         </div>
       </header>
 
-      <main className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-6">
         <div
           role="note"
           className="rounded-lg border border-warn-line bg-warn-bg p-4 text-sm leading-6 text-warn-text"

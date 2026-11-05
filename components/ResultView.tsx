@@ -92,7 +92,7 @@ function InterpretationView({
 
   return (
     <div className="mt-8 rounded-lg border border-glow/40 bg-raised p-4">
-      <h3 className="mb-3 text-base font-semibold text-light">사건 적용 해석</h3>
+      <h3 className="mb-3 text-base font-semibold text-ink">사건 적용 해석</h3>
       {interpretation.status === "unavailable" ? (
         <p className={mutedText}>{interpretation.message}</p>
       ) : (
@@ -100,7 +100,7 @@ function InterpretationView({
           {interpretation.points.map((point) => (
             <li
               key={point.text}
-              className="rounded-lg border border-line bg-black/30 p-4"
+              className="rounded-lg border border-line bg-surface p-4"
             >
               <p className="text-[15px] leading-7">{point.text}</p>
               {point.needsReview && (
@@ -140,10 +140,10 @@ function StatuteView({ statute }: { statute: StatuteExplanation }) {
   );
   return (
     <div className="mt-4 rounded-lg border border-glow/40 bg-raised p-4">
-      <h3 className="mb-3 text-base font-semibold text-light">법령 조문 기반 설명</h3>
+      <h3 className="mb-3 text-base font-semibold text-ink">법령 조문 기반 설명</h3>
       <ul className="flex flex-col gap-3">
         {statute.points.map((point) => (
-          <li key={point.text} className="rounded-lg border border-line bg-black/30 p-4">
+          <li key={point.text} className="rounded-lg border border-line bg-surface p-4">
             <p className="text-[15px] leading-7">{point.text}</p>
             {point.needsReview && (
               <p className="mt-2 text-sm font-medium text-warn-text">
@@ -217,7 +217,7 @@ function ResultBody({ state }: { state: ResultState }) {
             key={item.caseNumber}
             className="rounded-lg border border-line bg-raised p-4"
           >
-            <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-light">
+            <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-ink">
               {item.caseNumber}
               {item.auctionAnalogy && <AuctionBadge />}
             </p>
@@ -249,7 +249,7 @@ export default function ResultView({ state }: { state: ResultState }) {
       aria-live="polite"
       className="min-h-40 rounded-lg border border-line bg-surface p-4"
     >
-      <h2 className="mb-3 text-base font-semibold text-light">분석 결과</h2>
+      <h2 className="mb-3 text-base font-semibold text-ink">분석 결과</h2>
       <ResultBody state={state} />
       <p className="mt-4 border-t border-line pt-3 text-sm text-foreground">
         {REFERENCE_NOTICE}

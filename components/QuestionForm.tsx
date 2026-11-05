@@ -60,7 +60,7 @@ export default function QuestionForm() {
           <button
             type="submit"
             disabled={isEmpty || isLoading}
-            className="btn-light"
+            className="btn-primary"
           >
             {isLoading ? "분석 중…" : "분석하기"}
           </button>

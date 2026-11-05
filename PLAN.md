@@ -1,4 +1,4 @@
-# 공매 판례분석 도우미 Planning Document
+# 공매 판례분석 서비스 Planning Document
 
 > **Summary**: 공매 담당 직원이 쟁점을 입력하면 판례 요약과 사건 적용 해석을 근거와 함께 보여 주는 웹 앱을 만든다.
 >
