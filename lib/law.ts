@@ -1,5 +1,5 @@
-// Design Ref: §2.2 lib/law.ts — 법제처 Open API 호출 (이번 작업은 판례 검색·본문 조회만)
-// Plan SC: 작업 4 법제처 판례 검색 연결
+// Design Ref: §2.2 lib/law.ts — 법제처 Open API 호출 (판례 검색·본문, 법령 조문)
+// Plan SC: 작업 4 법제처 판례 검색 연결, 작업 9 판례 없을 때 대체 설명
 //
 // 주의: 이 파일은 서버 코드(app/api, 서버 컴포넌트)에서만 불러온다.
 // 인증키(LAW_OC)는 서버에서만 읽고, 오류 메시지나 로그에 넣지 않는다.
@@ -213,8 +213,9 @@ async function callLawApi(
   }
 
   const body = await response.text();
+  let root: unknown;
   try {
-    return JSON.parse(body);
+    root = JSON.parse(body);
   } catch {
     // 인증 실패나 서버 점검 안내가 JSON이 아닌 페이지로 오는 경우
     throw new LawApiError(
@@ -222,6 +223,11 @@ async function callLawApi(
       "법제처가 JSON이 아닌 응답을 보냈습니다. 인증키나 호출 서버 등록을 확인하세요.",
     );
   }
+  // 인증 실패는 200 상태로 {"result": "...", "msg": "..."} 만 온다. "결과 없음"과 구분한다. (실제 호출로 확인)
+  if (isObject(root) && typeof root["result"] === "string") {
+    throw new LawApiError("bad-response", "법제처 인증에 실패했습니다. 인증키나 호출 서버 등록을 확인하세요.");
+  }
+  return root;
 }
 
 // 판례 검색. 기본은 본문 검색이고, 최신 선고일 순으로 돌려준다.
@@ -286,13 +292,13 @@ export type RankedPrecedent = PrecedentDetail & {
   matchedKeywords: string[];
 };
 
-// 본문 전체를 보고 점수를 매긴다. 관련이 약하면 null을 돌려준다.
 // 경매만 다루고 공매 언급이 없는 판례인지 글자로 확인한다. AI가 놓쳐도 준용 표시가 빠지지 않게 한다.
 export function isAuctionOnlyPrecedent(detail: PrecedentDetail): boolean {
   const text = `${detail.issue} ${detail.summary} ${detail.content}`;
   return /경매|민사집행법/.test(text) && !/공매|국세징수법/.test(text);
 }
 
+// 본문 전체를 보고 점수를 매긴다. 관련이 약하면 null을 돌려준다.
 export function scorePrecedent(
   detail: PrecedentDetail,
   keywords: string[],
@@ -378,6 +384,12 @@ export async function findRelevantPrecedents(
   const details = await Promise.allSettled(
     candidates.map((candidate) => getPrecedent(candidate.id, Number.POSITIVE_INFINITY)),
   );
+
+  // 후보는 있는데 본문을 하나도 못 받았다면 "판례 없음"이 아니라 조회 실패다.
+  const firstFailure = details.find((result) => result.status === "rejected");
+  if (firstFailure && details.every((result) => result.status === "rejected")) {
+    throw firstFailure.reason;
+  }
 
   const ranked: RankedPrecedent[] = [];
   for (const result of details) {
@@ -481,4 +493,109 @@ export async function checkOverruled(
   } catch {
     return { status: "failed" };
   }
+}
+
+// ---------- 법령 조문 (판례가 없을 때의 근거) ----------
+//
+// 실제 호출로 확인한 점 (2026-11-05)
+// - 법령 본문 검색은 "공매" 한 낱말에도 무관한 법령 165건이 나온다.
+// - 그래서 공매 업무의 기본 법령을 정해 두고, 그 조문에서 검색어로 고른다.
+
+const STATUTE_SOURCES = [
+  { name: "국세징수법", isAnalogy: false },
+  { name: "국세기본법", isAnalogy: false },
+  { name: "민사집행법", isAnalogy: true }, // 공매에 규정이 없을 때 준용하는 경매 법령
+];
+const MAX_STATUTE_ARTICLES = 8; // AI에게 줄 조문 수 (가정값)
+const MAX_ARTICLE_CHARS = 1500;
+
+export type StatuteArticle = {
+  lawName: string;
+  articleNumber: string; // 예: 제75조, 제75조의2
+  title: string;
+  text: string;
+  isAnalogy: boolean;
+};
+
+// 항·호·목으로 나뉜 조문을 글 하나로 합친다.
+function flattenArticle(unit: Json): string {
+  const lines = [text(unit["조문내용"])];
+  for (const clause of asArray(unit["항"]).filter(isObject)) {
+    lines.push(text(clause["항내용"]));
+    for (const item of asArray(clause["호"]).filter(isObject)) {
+      lines.push(text(item["호내용"]));
+      for (const sub of asArray(item["목"]).filter(isObject)) {
+        lines.push(text(sub["목내용"]));
+      }
+    }
+  }
+  return lines.filter(Boolean).join("\n");
+}
+
+export function parseLawDetail(
+  root: unknown,
+  lawName: string,
+  isAnalogy: boolean,
+): StatuteArticle[] {
+  const node = unwrap(root);
+  const articles = isObject(node["조문"]) ? node["조문"]["조문단위"] : undefined;
+  return asArray(articles)
+    .filter(isObject)
+    .filter((unit) => text(unit["조문여부"]) === "조문")
+    .map((unit) => {
+      const branch = text(unit["조문가지번호"]);
+      return {
+        lawName,
+        articleNumber: `제${text(unit["조문번호"])}조${branch ? `의${branch}` : ""}`,
+        title: text(unit["조문제목"]),
+        text: flattenArticle(unit),
+        isAnalogy,
+      };
+    });
+}
+
+async function getCurrentLaw(name: string, isAnalogy: boolean): Promise<StatuteArticle[]> {
+  const found = unwrap(await callLawApi("lawSearch.do", { target: "law", query: name, display: "5" }));
+  const law = asArray(found["law"])
+    .filter(isObject)
+    .find((item) => text(item["법령명한글"]) === name && text(item["현행연혁코드"]) === "현행");
+  if (!law) throw new LawApiError("not-found", "현행 법령을 찾지 못했습니다.");
+  const detail = await callLawApi("lawService.do", { target: "law", MST: text(law["법령일련번호"]) });
+  return parseLawDetail(detail, name, isAnalogy);
+}
+
+export function pickRelevantArticles(
+  articles: StatuteArticle[],
+  keywords: string[],
+  limit: number = MAX_STATUTE_ARTICLES,
+): StatuteArticle[] {
+  const scored = articles.flatMap((article) => {
+    let score = 0;
+    for (const keyword of keywords) {
+      if (article.title.includes(keyword)) score += 10;
+      score += Math.min(countOccurrences(article.text, keyword), 5);
+    }
+    if (score === 0) return [];
+    return [{ article, score: score + (article.isAnalogy ? 0 : 3) }]; // 공매 법령을 먼저 본다
+  });
+  return scored
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+    .map(({ article }) => ({ ...article, text: article.text.slice(0, MAX_ARTICLE_CHARS) }));
+}
+
+// 일부 법령을 못 받아도 나머지로 진행하고, 전부 실패하면 오류로 알린다.
+export async function findRelevantArticles(keywords: string[]): Promise<StatuteArticle[]> {
+  if (keywords.length === 0) return [];
+  const results = await Promise.allSettled(
+    STATUTE_SOURCES.map((source) => getCurrentLaw(source.name, source.isAnalogy)),
+  );
+  const firstFailure = results.find((result) => result.status === "rejected");
+  if (firstFailure && results.every((result) => result.status === "rejected")) {
+    throw firstFailure.reason;
+  }
+  const articles = results.flatMap((result) =>
+    result.status === "fulfilled" ? result.value : [],
+  );
+  return pickRelevantArticles(articles, keywords);
 }

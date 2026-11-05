@@ -6,14 +6,15 @@
 
 import OpenAI from "openai";
 import { z } from "zod";
-import type { PrecedentDetail } from "@/lib/law";
+import type { PrecedentDetail, StatuteArticle } from "@/lib/law";
 import {
   INTERPRETATION_INSTRUCTIONS,
   KEYWORD_INSTRUCTIONS,
   MAX_KEYWORDS,
+  STATUTE_INSTRUCTIONS,
   SUMMARY_INSTRUCTIONS,
 } from "@/lib/rules";
-import type { RawPoint } from "@/lib/verify";
+import type { RawPoint, RawStatutePoint } from "@/lib/verify";
 
 const REQUEST_TIMEOUT_MS = 60_000;
 const INTERPRETATION_TIMEOUT_MS = 35_000;
@@ -216,6 +217,44 @@ export async function interpretCase(
   const { points } = await askAiJson("case_interpretation", InterpretationSchema, {
     instructions: INTERPRETATION_INSTRUCTIONS,
     input: `<쟁점>\n${question}\n</쟁점>\n\n<판례자료>\n${material}\n</판례자료>`,
+    timeoutMs: INTERPRETATION_TIMEOUT_MS,
+    maxRetries: 0,
+  });
+  return points;
+}
+
+const StatuteSchema = z.object({
+  points: z.array(
+    z.object({
+      text: z.string(),
+      citedArticles: z.array(
+        z.object({ lawName: z.string(), articleNumber: z.string() }),
+      ),
+      needsReview: z.boolean(),
+    }),
+  ),
+});
+
+// 판례가 없을 때 법령 조문만 근거로 일반 설명을 받는다.
+export async function explainFromStatutes(
+  question: string,
+  articles: StatuteArticle[],
+): Promise<RawStatutePoint[]> {
+  const material = articles
+    .map((article) =>
+      [
+        ...(article.isAnalogy ? ["[준용 법령]"] : []),
+        `[법령명] ${article.lawName}`,
+        `[조문번호] ${article.articleNumber}`,
+        `[조문제목] ${article.title}`,
+        `[내용] ${article.text}`,
+      ].join("\n"),
+    )
+    .join("\n\n---\n\n");
+
+  const { points } = await askAiJson("statute_explanation", StatuteSchema, {
+    instructions: STATUTE_INSTRUCTIONS,
+    input: `<쟁점>\n${question}\n</쟁점>\n\n<법령조문>\n${material}\n</법령조문>`,
     timeoutMs: INTERPRETATION_TIMEOUT_MS,
     maxRetries: 0,
   });

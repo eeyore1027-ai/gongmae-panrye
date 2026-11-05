@@ -1,8 +1,12 @@
 // Design Ref: §3 화면 구성 — 결과 영역 (판례 요약 카드)
-// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석
+// Plan SC: 작업 6 판례 요약, 작업 8 사건 적용 해석, 작업 9 판례 없을 때 대체 설명
 
 import type { AnalyzeResponse } from "@/app/api/analyze/route";
-import type { AnalyzedCase, Interpretation } from "@/app/api/analyze/route";
+import type {
+  AnalyzedCase,
+  Interpretation,
+  StatuteExplanation,
+} from "@/app/api/analyze/route";
 import {
   AUCTION_LABEL,
   AUCTION_NOTICE,
@@ -13,6 +17,10 @@ import {
   OVERRULED_LABEL,
   OVERRULING_NOTICE,
   REFERENCE_NOTICE,
+  STATUTE_ANALOGY_LABEL,
+  STATUTE_ANALOGY_NOTICE,
+  STATUTE_GENERAL_NOTICE,
+  SUMMARY_TRIMMED_NOTICE,
 } from "@/lib/rules";
 
 export type ResultState =
@@ -123,6 +131,52 @@ function InterpretationView({
   );
 }
 
+function StatuteView({ statute }: { statute: StatuteExplanation }) {
+  if (statute.status === "unavailable") {
+    return <p className={`mt-3 ${mutedText}`}>{statute.message}</p>;
+  }
+  const usesAnalogy = statute.points.some((point) =>
+    point.citations.some((citation) => citation.isAnalogy),
+  );
+  return (
+    <div className="mt-4 rounded-lg border border-glow/40 bg-raised p-4">
+      <h3 className="mb-3 text-base font-semibold text-light">법령 조문 기반 설명</h3>
+      <ul className="flex flex-col gap-3">
+        {statute.points.map((point) => (
+          <li key={point.text} className="rounded-lg border border-line bg-black/30 p-4">
+            <p className="text-[15px] leading-7">{point.text}</p>
+            {point.needsReview && (
+              <p className="mt-2 text-sm font-medium text-warn-text">
+                {NEEDS_REVIEW_LABEL}
+              </p>
+            )}
+            <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
+              {point.citations.map((citation) => (
+                <li
+                  key={`${citation.lawName}${citation.articleNumber}`}
+                  className="flex items-center gap-1"
+                >
+                  근거: {citation.lawName} {citation.articleNumber}
+                  {citation.title && `(${citation.title})`}
+                  {citation.isAnalogy && (
+                    <span className="rounded bg-info-bg px-1.5 py-0.5 font-medium text-info-text">
+                      {STATUTE_ANALOGY_LABEL}
+                    </span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-3 text-xs text-muted">{STATUTE_GENERAL_NOTICE}</p>
+      {usesAnalogy && (
+        <p className="mt-1 text-xs text-muted">{STATUTE_ANALOGY_NOTICE}</p>
+      )}
+    </div>
+  );
+}
+
 function ResultBody({ state }: { state: ResultState }) {
   if (state.kind === "idle") {
     return (
@@ -150,6 +204,7 @@ function ResultBody({ state }: { state: ResultState }) {
       <>
         <Keywords keywords={data.keywords} />
         <p className={mutedText}>{data.message}</p>
+        <StatuteView statute={data.statute} />
       </>
     );
   }
@@ -173,6 +228,9 @@ function ResultBody({ state }: { state: ResultState }) {
             </p>
             <CaseWarning item={item} />
             <p className="whitespace-pre-line text-[15px] leading-7">{item.summary}</p>
+            {item.summaryTrimmed && (
+              <p className="mt-2 text-xs text-muted">{SUMMARY_TRIMMED_NOTICE}</p>
+            )}
           </li>
         ))}
       </ul>

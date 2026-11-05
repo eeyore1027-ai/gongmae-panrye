@@ -21,6 +21,17 @@ export const CHECK_FAILED_LABEL = "판례 변경 여부를 확인하지 못함";
 export const OVERRULING_NOTICE =
   "판례 변경 여부는 자동으로 확인한 결과입니다. 표시가 없어도 변경되지 않았다는 보장은 아니니, 근거로 쓰기 전에 확인하세요.";
 export const MAX_INTERPRETATION_POINTS = 5; // 해석 항목 수 (가정값)
+export const STATUTE_ANALOGY_LABEL = "경매 법령(준용)";
+export const STATUTE_ANALOGY_NOTICE =
+  "공매에 직접 적용되는 조문이 아닌 경매 법령을 준용한 내용이 포함되어 있습니다.";
+export const STATUTE_GENERAL_NOTICE =
+  "관련 법령 조문을 바탕으로 한 일반 설명이며, 이 사건에 그대로 적용된다는 뜻은 아닙니다.";
+export const NO_STATUTE_NOTICE =
+  "관련 법령 조문도 찾지 못해 설명을 만들지 않았습니다. 법무 담당자에게 확인해 주세요.";
+export const STATUTE_FAILED_NOTICE =
+  "법령 조문 설명을 만들지 못했습니다. 잠시 후 다시 시도해 주세요.";
+export const SUMMARY_TRIMMED_NOTICE =
+  "원문에서 확인되지 않는 사건번호나 날짜가 든 문장을 뺐습니다.";
 export const AUCTION_LABEL = "경매 판례(준용)";
 export const AUCTION_NOTICE =
   "공매에 직접 적용되는 근거가 아닌 경매 판례를 준용한 내용이 포함되어 있습니다.";
@@ -76,3 +87,14 @@ export const INTERPRETATION_INSTRUCTIONS = `${BASE_INSTRUCTIONS}
 - 판례끼리 결론이 다르면 최신 대법원 판례를 우선하고, 다른 판례가 있다는 점도 씁니다.
 - "[경매 판례]"로 표시된 판례를 근거로 쓰면 공매에 준용한 것임을 text에 밝힙니다.
 - "[주의]"로 표시된 판례는 그 주의 내용을 고려해 조심스럽게 씁니다.`;
+
+// 판례가 없을 때의 법령 조문 설명 지시문 (PRD 5번 must 1)
+export const STATUTE_INSTRUCTIONS = `${BASE_INSTRUCTIONS}
+
+관련 판례를 찾지 못한 상황입니다. 제공된 법령 조문만 근거로 쟁점을 일반적으로 설명합니다.
+- points: 설명 항목을 최대 ${MAX_INTERPRETATION_POINTS}개 씁니다. 항목마다 한두 문장입니다. 조문이 쟁점과 무관하면 빈 목록을 돌려줍니다.
+- text: 조문의 내용을 쉬운 말로 풉니다. 이 사건의 결론을 단정하지 않습니다. 조문 번호와 날짜, 사건번호는 text에 쓰지 않습니다.
+- citedArticles: 그 항목의 근거 조문을 자료에 적힌 법령명(lawName)과 조문번호(articleNumber) 그대로 적습니다. 근거 조문이 없는 내용은 쓰지 않습니다.
+- needsReview: 조문만으로 확신할 수 없거나 사건의 사실관계에 따라 달라지면 true입니다.
+- "[준용 법령]"으로 표시된 조문을 근거로 쓰면 공매에 준용하는 내용임을 text에 밝힙니다.
+- 같은 내용을 되풀이하지 않고, "자료"라는 말 대신 "이 조문"처럼 씁니다.`;
