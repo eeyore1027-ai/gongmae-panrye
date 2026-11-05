@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 공매 판례분석 서비스
 
-## Getting Started
+압류재산 공매(조세) 업무 담당 직원이 법률 쟁점을 입력하면, 관련 판례를 찾아 쉬운 말로 요약하고 **사건에 어떻게 적용되는지 해석**해 주는 웹 앱입니다.
+답변은 참고용이며 최종 판단은 담당자가 합니다.
 
-First, run the development server:
+- 배포 주소: https://gongmae-panrye.vercel.app
+- 기획서: [PRD.md](PRD.md) · 작업 계획: [PLAN.md](PLAN.md) · 설계: [DESIGN.md](DESIGN.md)
+
+## 왜 만들었나
+
+공매 담당 직원은 사건마다 판례를 직접 찾아 읽고 해석해야 합니다. 판례는 길고 어려우며, 법률질의는 답변이 늦습니다. 이 앱은 판례 검토 시간을 줄이고, **근거가 확인된 내용만** 보여 주는 것을 목표로 합니다.
+
+## 주요 기능
+
+1. **판례 검색·요약** — 쟁점과 관련된 판례를 법제처 국가법령정보 Open API에서 찾아 10줄 이내로 요약합니다. 모든 요약에 사건번호·선고일을 표시하고, 판례 카드마다 국가법령정보센터 원문 링크를 붙입니다.
+2. **사건 적용 해석** — 근거 판례를 최대 5건까지 인용해 해석합니다. 경매 판례를 준용하면 "경매 판례(준용)"로 구분하고, 불확실한 내용에는 "법무 담당자 확인 필요"를 표시합니다.
+3. 판례가 없으면 그 사실을 알리고 근거 법령 조문 기반 설명을 보여 줍니다.
+4. 추가 질문(현재 화면 안에서만 기억), 결과 복사, 범위 밖 질문 안내.
+
+## 거짓 정보를 막는 방법
+
+- AI에게는 법제처에서 가져온 판례만 주고, 답변 속 사건번호·선고일·조문 번호를 서버가 가져온 자료와 다시 대조해 일치하는 것만 보여 줍니다.
+- 변경(폐기)된 판례는 경고와 함께 표시하고 근거로 쓰지 않습니다.
+- 입력 내용은 서버에 저장하지 않습니다. (답변 생성을 위해 외부 AI 서비스로는 전송됩니다.)
+
+## 기술 스택
+
+Next.js(App Router) · TypeScript · Tailwind CSS · OpenAI API · 법제처 Open API · Vercel 배포
+
+## 직접 실행하기
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000
+npm run lint    # 코드 검사
+npm run build   # 배포용 빌드
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+프로젝트 루트에 `.env` 파일을 만들고 아래 이름의 값을 채워야 합니다. (`.env`는 저장소에 올라가지 않습니다.)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| 이름 | 설명 |
+|------|------|
+| `OPENAI_API_KEY` | OpenAI API 키 |
+| `OPENAI_MODEL` | 사용할 OpenAI 모델 이름 |
+| `LAW_OC` | 법제처 Open API 인증키(OC) |
+| `ACCESS_CODE` | 접속 코드 (접속 확인을 켠 경우에 사용) |
+| `AUTH_SECRET` | 접속 확인용 서명 비밀값 |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+접속 코드 확인은 `lib/rules.ts`의 `ACCESS_GATE_ENABLED`로 켜고 끕니다.
 
-## Learn More
+## 만들지 않는 것
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+로그인·회원가입, 사용자별 저장, 공매 시스템 연동, 판례 DB 직접 구축, 의견서·공문서 자동 작성, 최종 법적 판단 대행, 모바일 앱. 자세한 범위는 [PRD.md](PRD.md) 6번을 참고하세요.
