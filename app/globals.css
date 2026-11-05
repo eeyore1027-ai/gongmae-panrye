@@ -1,26 +1,159 @@
 @import "tailwindcss";
 
+/* 디자인 색상: 어둠 속의 빛나는 문 콘셉트. 다크 테마 하나로 고정한다. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+  --background: #050505;
+  --surface: #111110;
+  --raised: #191816;
+  --line: rgb(255 255 255 / 0.12);
+  --foreground: #edeae4;
+  --muted: #a8a29a;
+  --light: #fff8ec;
+  --glow: #c9a876;
+  --danger-bg: #2c0f0f;
+  --danger-line: #9b3f3f;
+  --danger-text: #fecaca;
+  --warn-bg: #2a1e0a;
+  --warn-line: #8f6d2b;
+  --warn-text: #fcdca6;
+  --info-bg: #0f2531;
+  --info-text: #bae6fd;
+  --error-text: #fca5a5;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-muted: var(--muted);
+  --color-light: var(--light);
+  --color-glow: var(--glow);
+  --color-danger-bg: var(--danger-bg);
+  --color-danger-line: var(--danger-line);
+  --color-danger-text: var(--danger-text);
+  --color-warn-bg: var(--warn-bg);
+  --color-warn-line: var(--warn-line);
+  --color-warn-text: var(--warn-text);
+  --color-info-bg: var(--info-bg);
+  --color-info-text: var(--info-text);
+  --color-error-text: var(--error-text);
+  --font-sans: var(--font-noto-sans);
+  --font-serif: var(--font-noto-serif);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-noto-sans), Arial, Helvetica, sans-serif;
+}
+
+/* 키보드로 이동할 때 현재 위치가 항상 보이게 한다. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--light);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* 문의 빛을 닮은 주요 버튼 */
+  .btn-light {
+    border-radius: 0.5rem;
+    background: var(--light);
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #050505;
+    box-shadow: 0 0 24px rgb(255 248 236 / 0.22);
+    transition: box-shadow 200ms, background-color 200ms;
+  }
+  .btn-light:hover:not(:disabled) {
+    background: #ffffff;
+    box-shadow: 0 0 36px rgb(255 248 236 / 0.4);
+  }
+  .btn-light:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+    box-shadow: none;
+  }
+
+  /* 입력창: 포커스하면 테두리가 따뜻한 빛으로 빛난다 */
+  .field {
+    width: 100%;
+    border: 1px solid rgb(255 255 255 / 0.22);
+    border-radius: 0.5rem;
+    background: rgb(0 0 0 / 0.45);
+    padding: 0.75rem;
+    font-size: 0.9375rem;
+    line-height: 1.75;
+    color: var(--foreground);
+    transition: border-color 200ms, box-shadow 200ms;
+  }
+  .field::placeholder {
+    color: var(--muted);
+  }
+  .field:focus {
+    border-color: var(--glow);
+    outline: 1px solid var(--glow);
+    outline-offset: 0;
+    box-shadow: 0 0 20px rgb(201 168 118 / 0.3);
+  }
+
+  /* 메인 화면 위쪽에서 희미하게 내려오는 빛 (장식이라 클릭을 막지 않는다) */
+  .light-beam {
+    pointer-events: none;
+    position: absolute;
+    inset: 0 0 auto;
+    height: 26rem;
+    background:
+      radial-gradient(ellipse 5rem 22rem at 50% 0, rgb(255 248 236 / 0.13), transparent),
+      radial-gradient(ellipse 28rem 18rem at 50% 0, rgb(201 168 118 / 0.1), transparent);
+  }
+
+  /* 분석 중에 천천히 밝아졌다 어두워지는 세로 빛 */
+  .loading-beam {
+    width: 2px;
+    height: 2.5rem;
+    flex: none;
+    border-radius: 1px;
+    background: linear-gradient(to bottom, transparent, var(--light), transparent);
+    box-shadow: 0 0 12px rgb(255 248 236 / 0.5);
+    animation: beam-pulse 2s ease-in-out infinite;
+  }
+
+  .fade-in {
+    animation: fade-in 1s ease-out both;
+  }
+}
+
+@keyframes beam-pulse {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* "동작 줄이기"를 켠 사용자에게는 움직임을 보여 주지 않는다. */
+@media (prefers-reduced-motion: reduce) {
+  .loading-beam,
+  .fade-in {
+    animation: none;
+  }
 }

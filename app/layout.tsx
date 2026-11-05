@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Noto_Sans_KR, Noto_Serif_KR } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// 본문용 글꼴. 한글 글꼴은 파일이 많아 필요한 글자 조각만 그때그때 불러온다.
+const notoSans = Noto_Sans_KR({
+  variable: "--font-noto-sans",
   subsets: ["latin"],
+  preload: false,
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+// 앱 제목에만 쓰는 글꼴
+const notoSerif = Noto_Serif_KR({
+  variable: "--font-noto-serif",
   subsets: ["latin"],
+  weight: ["500", "600"],
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -21,7 +26,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${notoSans.variable} ${notoSerif.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>

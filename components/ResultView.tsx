@@ -20,12 +20,14 @@ export type ResultState =
   | { kind: "loading" }
   | { kind: "done"; data: AnalyzeResponse };
 
-const mutedText = "text-sm text-zinc-600 dark:text-zinc-400";
+const mutedText = "text-sm leading-6 text-muted";
+const warnBox =
+  "mb-3 rounded border border-warn-line bg-warn-bg px-3 py-2 text-sm text-warn-text";
 
 function Keywords({ keywords }: { keywords: string[] }) {
   if (keywords.length === 0) return null;
   return (
-    <p className="mb-3 text-xs text-zinc-500">
+    <p className="mb-3 text-xs text-muted">
       법제처로 보낸 검색어: {keywords.join(", ")}
     </p>
   );
@@ -35,7 +37,7 @@ function Keywords({ keywords }: { keywords: string[] }) {
 function CaseWarning({ item }: { item: AnalyzedCase }) {
   if (item.overruledBy) {
     return (
-      <p className="mb-2 rounded border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200">
+      <p className="mb-3 rounded border border-danger-line bg-danger-bg px-3 py-2 text-sm font-medium text-danger-text">
         {OVERRULED_LABEL}: {item.overruledBy.caseNumber} 전원합의체 판결(
         {item.overruledBy.judgmentDate})이 이 판결과 배치되는 범위에서
         변경했습니다. 어느 부분이 변경됐는지 확인하기 전에는 근거로 쓰지 마세요.
@@ -44,14 +46,14 @@ function CaseWarning({ item }: { item: AnalyzedCase }) {
   }
   if (item.mayConflict) {
     return (
-      <p className="mb-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+      <p className={warnBox}>
         {MAY_CONFLICT_LABEL} · {NEEDS_REVIEW_LABEL}
       </p>
     );
   }
   if (item.overrulingCheckFailed) {
     return (
-      <p className="mb-2 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+      <p className={warnBox}>
         {CHECK_FAILED_LABEL} · {NEEDS_REVIEW_LABEL}
       </p>
     );
@@ -61,7 +63,7 @@ function CaseWarning({ item }: { item: AnalyzedCase }) {
 
 function AuctionBadge() {
   return (
-    <span className="rounded bg-sky-100 px-1.5 py-0.5 text-xs font-medium text-sky-900 dark:bg-sky-950 dark:text-sky-200">
+    <span className="rounded bg-info-bg px-1.5 py-0.5 text-xs font-medium text-info-text">
       {AUCTION_LABEL}
     </span>
   );
@@ -81,8 +83,8 @@ function InterpretationView({
     );
 
   return (
-    <div className="mt-6">
-      <h3 className="mb-2 text-sm font-semibold">사건 적용 해석</h3>
+    <div className="mt-8 rounded-lg border border-glow/40 bg-raised p-4">
+      <h3 className="mb-3 text-base font-semibold text-light">사건 적용 해석</h3>
       {interpretation.status === "unavailable" ? (
         <p className={mutedText}>{interpretation.message}</p>
       ) : (
@@ -90,15 +92,15 @@ function InterpretationView({
           {interpretation.points.map((point) => (
             <li
               key={point.text}
-              className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+              className="rounded-lg border border-line bg-black/30 p-4"
             >
-              <p className="text-sm leading-6">{point.text}</p>
+              <p className="text-[15px] leading-7">{point.text}</p>
               {point.needsReview && (
-                <p className="mt-2 text-xs font-medium text-amber-800 dark:text-amber-300">
+                <p className="mt-2 text-sm font-medium text-warn-text">
                   {NEEDS_REVIEW_LABEL}
                 </p>
               )}
-              <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-500">
+              <ul className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
                 {point.citations.map((citation) => (
                   <li
                     key={citation.caseNumber}
@@ -113,9 +115,9 @@ function InterpretationView({
           ))}
         </ul>
       )}
-      {usesAuction && <p className="mt-3 text-xs text-zinc-500">{AUCTION_NOTICE}</p>}
+      {usesAuction && <p className="mt-3 text-xs text-muted">{AUCTION_NOTICE}</p>}
       {hasOverruled && (
-        <p className="mt-3 text-xs text-zinc-500">{OVERRULED_EXCLUDED_NOTICE}</p>
+        <p className="mt-3 text-xs text-muted">{OVERRULED_EXCLUDED_NOTICE}</p>
       )}
     </div>
   );
@@ -131,12 +133,17 @@ function ResultBody({ state }: { state: ResultState }) {
     );
   }
   if (state.kind === "loading") {
-    return <p className={mutedText}>판례를 찾아 읽고 있습니다…</p>;
+    return (
+      <div className="flex items-center gap-3">
+        <div aria-hidden="true" className="loading-beam" />
+        <p className={mutedText}>판례를 찾아 읽고 있습니다…</p>
+      </div>
+    );
   }
 
   const { data } = state;
   if (data.status === "error" || data.status === "unauthorized") {
-    return <p className="text-sm text-red-700 dark:text-red-400">{data.message}</p>;
+    return <p className="text-sm text-error-text">{data.message}</p>;
   }
   if (data.status === "no-cases") {
     return (
@@ -153,23 +160,23 @@ function ResultBody({ state }: { state: ResultState }) {
         {data.cases.map((item) => (
           <li
             key={item.caseNumber}
-            className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
+            className="rounded-lg border border-line bg-raised p-4"
           >
-            <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
+            <p className="flex flex-wrap items-center gap-2 text-lg font-semibold text-light">
               {item.caseNumber}
               {item.auctionAnalogy && <AuctionBadge />}
             </p>
-            <p className="mb-2 text-xs text-zinc-500">
+            <p className="mb-3 text-sm text-muted">
               {[item.court, item.judgmentDate, item.caseName]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
             <CaseWarning item={item} />
-            <p className="whitespace-pre-line text-sm leading-6">{item.summary}</p>
+            <p className="whitespace-pre-line text-[15px] leading-7">{item.summary}</p>
           </li>
         ))}
       </ul>
-      <p className="mt-3 text-xs text-zinc-500">{OVERRULING_NOTICE}</p>
+      <p className="mt-3 text-xs text-muted">{OVERRULING_NOTICE}</p>
       <InterpretationView
         interpretation={data.interpretation}
         hasOverruled={data.cases.some((item) => item.overruledBy)}
@@ -182,11 +189,11 @@ export default function ResultView({ state }: { state: ResultState }) {
   return (
     <section
       aria-live="polite"
-      className="min-h-40 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900"
+      className="min-h-40 rounded-lg border border-line bg-surface p-4"
     >
-      <h2 className="mb-2 text-base font-semibold">분석 결과</h2>
+      <h2 className="mb-3 text-base font-semibold text-light">분석 결과</h2>
       <ResultBody state={state} />
-      <p className="mt-4 border-t border-zinc-200 pt-3 text-xs text-zinc-500 dark:border-zinc-800">
+      <p className="mt-4 border-t border-line pt-3 text-sm text-foreground">
         {REFERENCE_NOTICE}
       </p>
     </section>
