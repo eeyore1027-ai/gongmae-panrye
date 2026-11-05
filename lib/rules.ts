@@ -2,6 +2,13 @@
 // Plan SC: 작업 5 AI 호출 연결 (PRD 5번 "AI가 지킬 규칙"의 공통 부분)
 
 export const APP_NAME = "공매 판례분석 서비스";
+// 호출 횟수 제한 (가정값, 접속자 주소 기준. 사무실처럼 여러 명이 같은 주소를 쓰면 함께 센다)
+export const AUTH_MAX_FAILURES = 10; // 틀린 접속 코드 허용 횟수
+export const AUTH_WINDOW_MS = 10 * 60 * 1000; // ... 10분 동안
+export const ANALYZE_MAX_REQUESTS = 60; // 분석 요청 허용 횟수
+export const ANALYZE_WINDOW_MS = 10 * 60 * 1000; // ... 10분 동안
+export const TOO_MANY_ATTEMPTS_NOTICE = "시도가 너무 많습니다. 잠시 후 다시 시도해 주세요.";
+export const TOO_MANY_REQUESTS_NOTICE = "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.";
 export const COPY_LABEL = "결과 복사";
 export const COPY_DONE_LABEL = "복사했습니다";
 export const COPY_FAILED_NOTICE = "복사하지 못했습니다. 글을 직접 선택해 복사해 주세요.";

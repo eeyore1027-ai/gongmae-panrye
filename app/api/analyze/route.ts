@@ -13,6 +13,7 @@ import {
   summarizePrecedents,
 } from "@/lib/ai";
 import { hasValidSession } from "@/lib/auth";
+import { clientKey, isLimited, recordHit } from "@/lib/rate-limit";
 import {
   checkOverruled,
   findRelevantArticles,
@@ -23,6 +24,8 @@ import {
   type PrecedentDetail,
 } from "@/lib/law";
 import {
+  ANALYZE_MAX_REQUESTS,
+  ANALYZE_WINDOW_MS,
   CHECK_FAILED_LABEL,
   INTERPRETATION_FAILED_NOTICE,
   MAX_CITED_CASES,
@@ -38,6 +41,7 @@ import {
   OUT_OF_SCOPE_NOTICE,
   SESSION_EXPIRED_NOTICE,
   STATUTE_FAILED_NOTICE,
+  TOO_MANY_REQUESTS_NOTICE,
   TRY_AGAIN_NOTICE,
 } from "@/lib/rules";
 import {
@@ -214,6 +218,17 @@ export async function POST(request: Request) {
   if (!(await hasValidSession())) {
     return reply({ status: "unauthorized", message: SESSION_EXPIRED_NOTICE }, 401);
   }
+
+  // 한 접속자가 짧은 시간에 너무 많이 부르면 AI·법제처를 부르기 전에 막는다. (비용 보호)
+  const key = clientKey(request);
+  if (isLimited("analyze", key, ANALYZE_MAX_REQUESTS, ANALYZE_WINDOW_MS)) {
+    console.warn("[analyze] 요청 횟수 초과");
+    return Response.json(
+      { status: "error", message: TOO_MANY_REQUESTS_NOTICE } satisfies AnalyzeResponse,
+      { status: 429, headers: { "Retry-After": String(ANALYZE_WINDOW_MS / 1000) } },
+    );
+  }
+  recordHit("analyze", key, ANALYZE_WINDOW_MS);
 
   const parsed = RequestSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
