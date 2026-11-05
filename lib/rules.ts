@@ -2,6 +2,9 @@
 // Plan SC: 작업 5 AI 호출 연결 (PRD 5번 "AI가 지킬 규칙"의 공통 부분)
 
 export const APP_NAME = "공매 판례분석 서비스";
+export const COPY_LABEL = "결과 복사";
+export const COPY_DONE_LABEL = "복사했습니다";
+export const COPY_FAILED_NOTICE = "복사하지 못했습니다. 글을 직접 선택해 복사해 주세요.";
 export const MAX_SUMMARY_LINES = 10;
 export const MAX_CITED_CASES = 5;
 export const MAX_KEYWORDS = 5;

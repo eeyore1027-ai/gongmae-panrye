@@ -1,7 +1,7 @@
 "use client";
 
 // Design Ref: §3 화면 구성, §4.3 추가 질문 — 대화는 이 화면에서만 기억하고 서버에 저장하지 않는다
-// Plan SC: 작업 6 판례 요약, 작업 12 추가 질문
+// Plan SC: 작업 6 판례 요약, 작업 12 추가 질문, 작업 13 결과 복사
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -147,6 +147,7 @@ export default function QuestionForm() {
             <ResultView
               heading={index === 0 ? "분석 결과" : "추가 질문 결과"}
               question={index === 0 ? undefined : turn.question}
+              copyQuestion={turn.question}
               state={
                 turn.data === null
                   ? { kind: "loading" }
