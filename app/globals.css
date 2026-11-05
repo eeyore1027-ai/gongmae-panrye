@@ -1,27 +1,27 @@
 @import "tailwindcss";
 
-/* 디자인 색상: 흰 종이 위의 검은 글자와, 열쇠 구멍 빛이 있는 남색 브랜드 영역. 밝은 테마 하나로 고정한다. */
+/* 디자인 색상: 짙은 남회색 바탕과 밝은 글자, 열쇠 구멍 빛이 있는 남색 브랜드 영역. 어두운 테마 하나로 고정한다. */
 :root {
-  color-scheme: light;
-  --background: #ffffff;
-  --surface: #f7f7f8;
-  --raised: #ffffff;
-  --line: #e5e5e5;
-  --foreground: #1f2937;
-  --muted: #4a4d54;
-  --ink: #030712;
-  --on-ink: #f9fafb;
-  --glow: #3b4fd8;
-  --danger-bg: #fef2f2;
-  --danger-line: #fca5a5;
-  --danger-text: #991b1b;
-  --warn-bg: #fffbeb;
-  --warn-line: #fcd34d;
-  --warn-text: #78350f;
-  --info-bg: #e8ebff;
-  --info-text: #2d3db0;
-  --error-text: #b91c1c;
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  color-scheme: dark;
+  --background: #1e2533;
+  --surface: #262e3e;
+  --raised: #2e3749;
+  --line: rgb(255 255 255 / 0.16);
+  --foreground: #e5e7eb;
+  --muted: #b6bcc9;
+  --ink: #f9fafb;
+  --on-ink: #111827;
+  --glow: #8b9bf0;
+  --danger-bg: #3a1a20;
+  --danger-line: #b4545f;
+  --danger-text: #fecaca;
+  --warn-bg: #352a14;
+  --warn-line: #a07c2c;
+  --warn-text: #fde3ae;
+  --info-bg: #27325f;
+  --info-text: #d3dbff;
+  --error-text: #fca5a5;
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.2);
   --brand-img: url(https://d2ol7oe51mr4n9.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/d889cba6-535c-450f-9b74-7270c0e01e9a.webp);
 }
 
@@ -55,7 +55,7 @@ body {
 /* 키보드로 이동할 때 현재 위치가 항상 보이게 한다. */
 @layer base {
   :focus-visible {
-    outline: 2px solid #6b7280;
+    outline: 2px solid #c7ccd8;
     outline-offset: 2px;
   }
 }
@@ -72,7 +72,7 @@ body {
     transition: background-color 150ms;
   }
   .btn-primary:hover:not(:disabled) {
-    background: #111827;
+    background: #ffffff;
   }
   .btn-primary:disabled {
     cursor: not-allowed;
@@ -97,7 +97,7 @@ body {
     opacity: 1;
   }
   .field:focus {
-    border-color: #a3a3a3;
+    border-color: #c7ccd8;
     outline: none;
     box-shadow: var(--shadow-xs), 0 0 0 3px rgb(163 163 163 / 0.35);
   }
@@ -476,7 +476,7 @@ body {
   transform: translateY(-50%);
   width: calc(16 * var(--u));
   height: calc(16 * var(--u));
-  color: #4e5157;
+  color: var(--muted);
   pointer-events: none;
 }
 .gate-input {
@@ -498,7 +498,7 @@ body {
   opacity: 1;
 }
 .gate-input:focus-visible {
-  border-color: #a3a3a3;
+  border-color: #c7ccd8;
   box-shadow: var(--shadow-xs), 0 0 0 calc(3 * var(--u)) rgb(163 163 163 / 0.35);
 }
 .gate-reveal {
@@ -510,7 +510,7 @@ body {
   height: calc(28 * var(--u));
   display: grid;
   place-items: center;
-  color: #4e5157;
+  color: var(--muted);
   border-radius: calc(6 * var(--u));
   cursor: pointer;
 }
@@ -538,7 +538,7 @@ body {
   transition: background-color 150ms;
 }
 .gate-submit:hover:not(:disabled) {
-  background: #111827;
+  background: #ffffff;
 }
 .gate-submit:disabled {
   cursor: not-allowed;
